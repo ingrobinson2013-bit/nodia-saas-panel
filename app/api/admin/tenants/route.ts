@@ -6,8 +6,8 @@ import { createClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
 
 const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_KEY!  // ← service role, solo server-side
+  process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder.supabase.co",
+  process.env.SUPABASE_SERVICE_KEY || "placeholder_key"  // ← service role, solo server-side
 );
 
 const ADMIN_SECRET = process.env.ADMIN_SECRET || "nodia_admin_2024";
