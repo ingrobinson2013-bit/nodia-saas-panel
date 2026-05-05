@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { Bot, Save, CheckCircle, MessageCircle, Link2, Building2, Eye, EyeOff, FileText, Plus, RefreshCw, Clock, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
@@ -56,6 +56,16 @@ export default function ConfigPage() {
   const loadTemplates = async () => {
     setTplLoading(true);
     try {
+      // Si no hay waba_id, intentar resolverlo automaticamente desde Meta
+      let wabaId = config.waba_id;
+      if (!wabaId) {
+        const resolveRes = await fetch(`${BACKEND}/api/templates/resolve-waba/${TENANT_ID}`);
+        if (resolveRes.ok) {
+          const resolveData = await resolveRes.json();
+          wabaId = resolveData.waba_id;
+          setConfig(prev => ({ ...prev, waba_id: wabaId }));
+        }
+      }
       const res = await fetch(`${BACKEND}/api/templates/list/${TENANT_ID}`);
       const data = await res.json();
       setTemplates(data.templates || []);
