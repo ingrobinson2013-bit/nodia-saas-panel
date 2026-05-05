@@ -6,8 +6,9 @@ import {
   MessageCircle, Bot, User, Send, Search,
   ToggleLeft, ToggleRight, RefreshCw, Zap, Clock
 } from "lucide-react";
+import { getTenantId } from "@/lib/tenant";
 
-const TENANT_ID = process.env.NEXT_PUBLIC_TENANT_ID || "";
+const TENANT_ID = getTenantId();
 
 export default function InboxPage() {
   const [sessions, setSessions] = useState<ChatSession[]>([]);

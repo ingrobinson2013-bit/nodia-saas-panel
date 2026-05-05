@@ -3,8 +3,9 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { Bot, Save, CheckCircle, MessageCircle, Link2, Building2, Eye, EyeOff } from "lucide-react";
 import WhatsAppConnect from "@/components/WhatsAppConnect";
+import { getTenantId } from "@/lib/tenant";
 
-const TENANT_ID = process.env.NEXT_PUBLIC_TENANT_ID || "";
+const TENANT_ID = getTenantId();
 
 interface TenantConfig {
   nombre: string;
