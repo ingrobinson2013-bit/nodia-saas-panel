@@ -112,6 +112,18 @@ export default function InboxPage() {
     return d.toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" });
   };
 
+  const isPast24Hours = (s: ChatSession | null) => {
+    if (!s || !s.history || s.history.length === 0) return true;
+    const lastUserMsg = [...s.history].reverse().find(m => m.role === "user");
+    if (!lastUserMsg || !lastUserMsg.timestamp) return true;
+    const msgDate = new Date(lastUserMsg.timestamp);
+    const now = new Date();
+    const diffHours = (now.getTime() - msgDate.getTime()) / (1000 * 60 * 60);
+    return diffHours > 24;
+  };
+
+  const past24h = isPast24Hours(active);
+
   return (
     <div className="flex h-screen bg-[#0f1117] text-white font-sans">
       {/* SIDEBAR — Lista de conversaciones */}
@@ -247,25 +259,40 @@ export default function InboxPage() {
           {/* Input — solo visible en modo humano */}
           {!active.bot_mode && (
             <div className="p-4 border-t border-white/5">
-              <div className="flex items-center gap-3 bg-white/5 rounded-2xl px-4 py-3">
-                <input
-                  className="flex-1 bg-transparent text-sm text-white placeholder-white/30 outline-none"
-                  placeholder="Escribe un mensaje como agente..."
-                  value={agentMsg}
-                  onChange={e => setAgentMsg(e.target.value)}
-                  onKeyDown={e => e.key === "Enter" && sendAgentMessage()}
-                />
-                <button
-                  onClick={sendAgentMessage}
-                  disabled={!agentMsg.trim()}
-                  className="p-2 rounded-xl bg-violet-600 hover:bg-violet-500 disabled:opacity-30 transition-all"
-                >
-                  <Send size={16} />
-                </button>
-              </div>
-              <p className="text-center text-xs text-white/20 mt-2 flex items-center justify-center gap-1">
-                <User size={11} /> Modo humano activo — la IA está pausada
-              </p>
+              {past24h ? (
+                <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4 flex flex-col items-center text-center">
+                  <Clock className="text-red-400 mb-2" size={24} />
+                  <p className="text-sm font-bold text-red-400">Ventana de 24 horas cerrada</p>
+                  <p className="text-xs text-red-300/80 mt-1 max-w-sm">
+                    Por políticas de Meta, no puedes enviar mensajes libres. Han pasado más de 24 horas desde que el cliente te escribió.
+                  </p>
+                  <button className="mt-3 bg-red-500/20 hover:bg-red-500/30 text-red-400 text-xs px-4 py-2 rounded-lg font-bold transition-all">
+                    Enviar Plantilla Oficial (Próximamente)
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center gap-3 bg-white/5 rounded-2xl px-4 py-3">
+                    <input
+                      className="flex-1 bg-transparent text-sm text-white placeholder-white/30 outline-none"
+                      placeholder="Escribe un mensaje como agente..."
+                      value={agentMsg}
+                      onChange={e => setAgentMsg(e.target.value)}
+                      onKeyDown={e => e.key === "Enter" && sendAgentMessage()}
+                    />
+                    <button
+                      onClick={sendAgentMessage}
+                      disabled={!agentMsg.trim()}
+                      className="p-2 rounded-xl bg-violet-600 hover:bg-violet-500 disabled:opacity-30 transition-all"
+                    >
+                      <Send size={16} />
+                    </button>
+                  </div>
+                  <p className="text-center text-xs text-white/20 mt-2 flex items-center justify-center gap-1">
+                    <User size={11} /> Modo humano activo — la IA está pausada
+                  </p>
+                </>
+              )}
             </div>
           )}
           {active.bot_mode && (
