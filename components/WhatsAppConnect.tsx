@@ -47,7 +47,7 @@ export default function WhatsAppConnect({ tenantId, onConnected }: Props) {
     setStatus("loading");
 
     window.FB.login(
-      async (response: any) => {
+      (response: any) => {
         if (!response.authResponse?.code) {
           setStatus("idle");
           return; // Usuario canceló
@@ -55,25 +55,28 @@ export default function WhatsAppConnect({ tenantId, onConnected }: Props) {
 
         const code = response.authResponse.code;
 
-        try {
-          const res = await fetch(
-            `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/meta-connect`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ tenant_id: tenantId, code }),
-            }
-          );
+        // Ejecutar proceso asíncrono internamente
+        (async () => {
+          try {
+            const res = await fetch(
+              `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/meta-connect`,
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ tenant_id: tenantId, code }),
+              }
+            );
 
-          const data = await res.json();
-          if (!res.ok) throw new Error(data.detail || "Error del servidor");
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.detail || "Error del servidor");
 
-          setStatus("success");
-          onConnected(data.phone_number_id);
-        } catch (err: any) {
-          setErrorMsg(err.message);
-          setStatus("error");
-        }
+            setStatus("success");
+            onConnected(data.phone_number_id);
+          } catch (err: any) {
+            setErrorMsg(err.message);
+            setStatus("error");
+          }
+        })();
       },
       {
         config_id: process.env.NEXT_PUBLIC_META_CONFIG_ID, // Config de Embedded Signup

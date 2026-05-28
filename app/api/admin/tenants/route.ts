@@ -33,3 +33,65 @@ export async function PATCH(req: NextRequest) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ status: "updated" });
 }
+
+// POST — registrar un nuevo tenant
+export async function POST(req: NextRequest) {
+  if (!checkAuth(req)) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  try {
+    const { nombre, odoo_url, odoo_db, odoo_user, odoo_api_key } = await req.json();
+    
+    if (!nombre || !odoo_url || !odoo_db || !odoo_user || !odoo_api_key) {
+      return NextResponse.json({ error: "Todos los campos son obligatorios" }, { status: 400 });
+    }
+
+    const tenant_id = crypto.randomUUID();
+    const temp_phone_id = `TEMP_${Math.random().toString(36).substring(2, 10)}`;
+    const temp_token = `TEMP_TOKEN_${Math.random().toString(36).substring(2, 15)}`;
+
+    // 1. Insertar Tenant
+    const { data: tenantData, error: tenantError } = await supabaseAdmin
+      .from("tenants")
+      .insert({
+        tenant_id,
+        nombre,
+        wa_phone_id: temp_phone_id,
+        wa_access_token: temp_token,
+        odoo_url,
+        odoo_db,
+        odoo_user,
+        odoo_api_key,
+        activo: true,
+        plan: "basico"
+      })
+      .select()
+      .single();
+
+    if (tenantError) {
+      return NextResponse.json({ error: tenantError.message }, { status: 500 });
+    }
+
+    // 2. Insertar Configuración inicial de Bot
+    const { error: configError } = await supabaseAdmin
+      .from("tenant_config")
+      .insert({
+        tenant_id,
+        direccion: "Calle Ficticia # 123, Bogotá",
+        horario: "Lun-Sáb 9am-8pm, Dom 10am-6pm",
+        servicios_texto: "Corte de cabello: $25.000 (30min) | Corte + Barba: $40.000 (45min)",
+        servicios_json: [
+          { nombre: "Corte de cabello", precio: 25000, duracion: 30 },
+          { nombre: "Corte + Barba", precio: 40000, duracion: 45 }
+        ]
+      });
+
+    if (configError) {
+      console.error("Error creating tenant config:", configError);
+      // No fallamos el request principal ya que el tenant ya fue creado
+    }
+
+    return NextResponse.json(tenantData);
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}
+

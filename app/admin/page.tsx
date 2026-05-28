@@ -4,7 +4,7 @@ import {
   ShieldCheck, Users, Crown, TrendingUp, MessageCircle,
   RefreshCw, LogOut, ToggleLeft, ToggleRight, Search,
   CheckCircle2, XCircle, Bot, Zap, ArrowUpRight,
-  Activity, DollarSign, Star, ChevronUp, ChevronDown
+  Activity, DollarSign, Star, ChevronUp, ChevronDown, Plus
 } from "lucide-react";
 
 interface Tenant {
@@ -35,6 +35,18 @@ export default function AdminPage() {
   const [filterPlan, setFilterPlan] = useState<"" | "basico" | "pro">("");
   const [filterStatus, setFilterStatus] = useState<"" | "activo" | "inactivo">("");
 
+  // Formulario nuevo tenant
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newTenant, setNewTenant] = useState({
+    nombre: "",
+    odoo_url: "",
+    odoo_db: "",
+    odoo_user: "",
+    odoo_api_key: "",
+  });
+  const [addLoading, setAddLoading] = useState(false);
+  const [addError, setAddError] = useState("");
+
   const fetchTenants = useCallback(async () => {
     setLoading(true);
     const res = await fetch("/api/admin/tenants", {
@@ -45,6 +57,43 @@ export default function AdminPage() {
   }, []);
 
   useEffect(() => { if (authed) fetchTenants(); }, [authed, fetchTenants]);
+
+  const selectLocalTenant = (t: Tenant) => {
+    localStorage.setItem("nodia_tenant_id", t.tenant_id);
+    localStorage.setItem("nodia_tenant_nombre", t.nombre);
+    localStorage.setItem("nodia_tenant_plan", t.plan);
+    window.location.href = "/config";
+  };
+
+  const handleAddTenant = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTenant.nombre || !newTenant.odoo_url || !newTenant.odoo_db || !newTenant.odoo_user || !newTenant.odoo_api_key) {
+      setAddError("Todos los campos son obligatorios");
+      return;
+    }
+    setAddLoading(true);
+    setAddError("");
+    try {
+      const res = await fetch("/api/admin/tenants", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-secret": process.env.NEXT_PUBLIC_ADMIN_SECRET || "",
+        },
+        body: JSON.stringify(newTenant),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Error al crear cliente");
+      
+      setTenants(prev => [data, ...prev]);
+      setShowAddModal(false);
+      setNewTenant({ nombre: "", odoo_url: "", odoo_db: "", odoo_user: "", odoo_api_key: "" });
+    } catch (err: any) {
+      setAddError(err.message);
+    } finally {
+      setAddLoading(false);
+    }
+  };
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -163,6 +212,11 @@ export default function AdminPage() {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <button onClick={() => setShowAddModal(true)}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 text-white text-sm font-bold transition-all shadow-lg shadow-violet-900/20">
+              <Plus size={16} />
+              Agregar Cliente
+            </button>
             <button onClick={fetchTenants}
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/8 border border-white/5 text-white/50 hover:text-white text-sm font-semibold transition-all">
               <RefreshCw size={15} className={loading ? "animate-spin" : ""} />
@@ -340,7 +394,11 @@ export default function AdminPage() {
                   </td>
 
                   {/* Acciones */}
-                  <td className="py-4 px-5 text-right">
+                  <td className="py-4 px-5 text-right flex items-center justify-end gap-2">
+                    <button onClick={() => selectLocalTenant(t)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-violet-600/10 hover:bg-violet-600/20 border border-violet-500/10 hover:border-violet-500/20 text-violet-400 text-xs font-bold transition-all">
+                      Configurar local
+                    </button>
                     <a href={`/inbox?tenant=${t.tenant_id}`}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-cyan-500/10 border border-white/5 hover:border-cyan-500/20 text-white/30 hover:text-cyan-400 text-xs font-semibold transition-all">
                       Ver chats <ArrowUpRight size={12} />
@@ -363,6 +421,97 @@ export default function AdminPage() {
             </div>
           )}
         </div>
+
+        {/* MODAL AGREGAR TENANT */}
+        {showAddModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+            <div className="bg-[#0f121d] border border-white/10 w-full max-w-lg rounded-3xl p-6 shadow-2xl relative">
+              <h2 className="text-xl font-bold text-white mb-1 flex items-center gap-2">
+                <Plus className="text-violet-400" size={20} />
+                Agregar Nuevo Cliente (Tenant)
+              </h2>
+              <p className="text-white/40 text-xs mb-6">
+                Registra un nuevo negocio y su integración con Odoo. Los tokens de WhatsApp se configurarán después desde el panel.
+              </p>
+              
+              <form onSubmit={handleAddTenant} className="space-y-4">
+                <div>
+                  <label className="block text-xs text-white/30 uppercase tracking-wider mb-1.5 font-semibold">Nombre del negocio</label>
+                  <input
+                    className="w-full bg-[#070a10] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 outline-none focus:border-violet-500/50"
+                    placeholder="Ej. Barbería El Barón"
+                    value={newTenant.nombre}
+                    onChange={e => setNewTenant(prev => ({ ...prev, nombre: e.target.value }))}
+                  />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="col-span-2">
+                    <label className="block text-xs text-white/30 uppercase tracking-wider mb-1.5 font-semibold">URL de Odoo</label>
+                    <input
+                      className="w-full bg-[#070a10] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 outline-none focus:border-violet-500/50"
+                      placeholder="Ej. https://elbaron.odoo.com"
+                      value={newTenant.odoo_url}
+                      onChange={e => setNewTenant(prev => ({ ...prev, odoo_url: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-white/30 uppercase tracking-wider mb-1.5 font-semibold">Base de Datos Odoo</label>
+                    <input
+                      className="w-full bg-[#070a10] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 outline-none focus:border-violet-500/50"
+                      placeholder="db-name"
+                      value={newTenant.odoo_db}
+                      onChange={e => setNewTenant(prev => ({ ...prev, odoo_db: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-white/30 uppercase tracking-wider mb-1.5 font-semibold">Usuario Admin Odoo</label>
+                    <input
+                      className="w-full bg-[#070a10] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 outline-none focus:border-violet-500/50"
+                      placeholder="admin@correo.com"
+                      value={newTenant.odoo_user}
+                      onChange={e => setNewTenant(prev => ({ ...prev, odoo_user: e.target.value }))}
+                    />
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-xs text-white/30 uppercase tracking-wider mb-1.5 font-semibold">API Key Odoo</label>
+                  <input
+                    type="password"
+                    className="w-full bg-[#070a10] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 outline-none focus:border-violet-500/50"
+                    placeholder="ApiKeyGeneradaEnOdoo"
+                    value={newTenant.odoo_api_key}
+                    onChange={e => setNewTenant(prev => ({ ...prev, odoo_api_key: e.target.value }))}
+                  />
+                </div>
+
+                {addError && (
+                  <div className="flex items-center gap-2 bg-rose-500/10 border border-rose-500/20 rounded-xl px-4 py-3 text-rose-400 text-xs">
+                    <XCircle size={14} /> {addError}
+                  </div>
+                )}
+
+                <div className="flex justify-end gap-3 pt-4 border-t border-white/5">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddModal(false)}
+                    className="px-4 py-2.5 rounded-xl text-xs font-bold bg-white/5 hover:bg-white/10 text-white/60"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={addLoading}
+                    className="px-5 py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 text-white"
+                  >
+                    {addLoading ? "Creando..." : "Crear Cliente"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
