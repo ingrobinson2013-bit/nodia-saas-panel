@@ -50,7 +50,7 @@ export default function AdminPage() {
   const fetchTenants = useCallback(async () => {
     setLoading(true);
     const res = await fetch("/api/admin/tenants", {
-      headers: { "x-admin-secret": process.env.NEXT_PUBLIC_ADMIN_SECRET || "" },
+      headers: { "x-admin-secret": process.env.NEXT_PUBLIC_ADMIN_SECRET || "nodia_admin_2024" },
     });
     if (res.ok) setTenants(await res.json());
     setLoading(false);
@@ -78,7 +78,7 @@ export default function AdminPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-admin-secret": process.env.NEXT_PUBLIC_ADMIN_SECRET || "",
+          "x-admin-secret": process.env.NEXT_PUBLIC_ADMIN_SECRET || "nodia_admin_2024",
         },
         body: JSON.stringify(newTenant),
       });
@@ -108,7 +108,7 @@ export default function AdminPage() {
     setSaving(tenant_id);
     await fetch("/api/admin/tenants", {
       method: "PATCH",
-      headers: { "Content-Type": "application/json", "x-admin-secret": process.env.NEXT_PUBLIC_ADMIN_SECRET || "" },
+      headers: { "Content-Type": "application/json", "x-admin-secret": process.env.NEXT_PUBLIC_ADMIN_SECRET || "nodia_admin_2024" },
       body: JSON.stringify({ tenant_id, ...fields }),
     });
     setTenants(prev => prev.map(t => t.tenant_id === tenant_id ? { ...t, ...fields } : t));
