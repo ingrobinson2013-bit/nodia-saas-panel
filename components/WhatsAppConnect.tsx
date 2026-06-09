@@ -38,6 +38,15 @@ export default function WhatsAppConnect({ tenantId, onConnected }: Props) {
   }, []);
 
   const handleConnect = () => {
+    const appId = process.env.NEXT_PUBLIC_META_APP_ID;
+    const configId = process.env.NEXT_PUBLIC_META_CONFIG_ID;
+
+    if (!appId || !configId || configId.includes("TU_CONFIG_ID")) {
+      setErrorMsg("Error: Faltan configurar las variables de entorno de Meta (App ID o Config ID) en el servidor.");
+      setStatus("error");
+      return;
+    }
+
     if (!window.FB) {
       setErrorMsg("SDK de Meta no cargó. Recarga la página.");
       setStatus("error");
@@ -79,7 +88,7 @@ export default function WhatsAppConnect({ tenantId, onConnected }: Props) {
         })();
       },
       {
-        config_id: process.env.NEXT_PUBLIC_META_CONFIG_ID, // Config de Embedded Signup
+        config_id: configId, // Config de Embedded Signup
         response_type: "code",
         override_default_response_type: true,
         extras: {
@@ -122,9 +131,14 @@ export default function WhatsAppConnect({ tenantId, onConnected }: Props) {
         </div>
       )}
 
-      <p className="text-xs text-white/20 text-center">
-        Se abrirá una ventana de Meta para autorizar tu número de WhatsApp Business
-      </p>
+      <div className="text-center space-y-1.5 p-3 bg-white/5 border border-white/10 rounded-xl">
+        <p className="text-[11px] text-amber-400/90 font-medium leading-relaxed">
+          ⚠️ El número no debe estar activo en WhatsApp en ningún celular. Elimina la cuenta desde el celular antes de continuar.
+        </p>
+        <p className="text-[10px] text-white/30">
+          Se abrirá una ventana de Meta para autorizar tu número de WhatsApp Business.
+        </p>
+      </div>
     </div>
   );
 }

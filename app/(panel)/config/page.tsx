@@ -164,7 +164,13 @@ export default function ConfigPage() {
           <p className="text-xs text-white/40 mb-3 font-semibold uppercase tracking-wider">Conexión automática (recomendado)</p>
           <WhatsAppConnect
             tenantId={TENANT_ID}
-            onConnected={(phoneId) => setConfig(prev => ({ ...prev, wa_phone_id: phoneId }))}
+            onConnected={async () => {
+              const { data } = await supabase.from("tenants")
+                .select("*")
+                .eq("tenant_id", TENANT_ID)
+                .single();
+              if (data) setConfig(data);
+            }}
           />
         </div>
 
