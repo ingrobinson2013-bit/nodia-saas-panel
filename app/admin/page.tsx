@@ -34,6 +34,7 @@ export default function AdminPage() {
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [filterPlan, setFilterPlan] = useState<"" | "basico" | "pro">("");
   const [filterStatus, setFilterStatus] = useState<"" | "activo" | "inactivo">("");
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   // Formulario nuevo tenant
   const [showAddModal, setShowAddModal] = useState(false);
@@ -63,6 +64,14 @@ export default function AdminPage() {
     localStorage.setItem("nodia_tenant_nombre", t.nombre);
     localStorage.setItem("nodia_tenant_plan", t.plan);
     window.location.href = "/config";
+  };
+
+  const copyMagicLink = (t: Tenant) => {
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    const magicUrl = `${origin}/login?magic=${t.tenant_id}`;
+    navigator.clipboard.writeText(magicUrl);
+    setCopiedId(t.tenant_id);
+    setTimeout(() => setCopiedId(null), 2000);
   };
 
   const handleAddTenant = async (e: React.FormEvent) => {
@@ -395,6 +404,10 @@ export default function AdminPage() {
 
                   {/* Acciones */}
                   <td className="py-4 px-5 text-right flex items-center justify-end gap-2">
+                    <button onClick={() => copyMagicLink(t)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600/10 hover:bg-emerald-600/20 border border-emerald-500/10 hover:border-emerald-500/20 text-emerald-400 text-xs font-bold transition-all">
+                      {copiedId === t.tenant_id ? "¡Copiado!" : "Copiar Link"}
+                    </button>
                     <button onClick={() => selectLocalTenant(t)}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-violet-600/10 hover:bg-violet-600/20 border border-violet-500/10 hover:border-violet-500/20 text-violet-400 text-xs font-bold transition-all">
                       Configurar local

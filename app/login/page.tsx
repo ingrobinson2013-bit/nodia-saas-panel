@@ -2,7 +2,7 @@
 // app/login/page.tsx
 // Página de Login multi-tenant — autentica con Supabase y carga el tenant del usuario
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
 
@@ -18,6 +18,49 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPass, setShowPass] = useState(false);
+
+  // Magic Link Auto-Authentication
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const magicToken = params.get('magic');
+    if (!magicToken) return;
+
+    async function authenticateMagicToken(token: string) {
+      setLoading(true);
+      setError('');
+      try {
+        const { data: tenant, error: tenantError } = await supabase
+          .from('tenants')
+          .select('tenant_id, nombre, activo, plan')
+          .eq('tenant_id', token)
+          .single();
+
+        if (tenantError || !tenant) {
+          setError('Link de acceso inválido o expirado ❌');
+          setLoading(false);
+          return;
+        }
+        if (!tenant.activo) {
+          setError('Tu cuenta está pausada. Contacta a NODIA para reactivarla ⚠️');
+          setLoading(false);
+          return;
+        }
+        // Guardar credenciales de sesión del cliente
+        localStorage.setItem('nodia_tenant_id', tenant.tenant_id);
+        localStorage.setItem('nodia_tenant_nombre', tenant.nombre);
+        localStorage.setItem('nodia_tenant_plan', tenant.plan || 'basico');
+        
+        // Redirigir directamente a la configuración para el onboarding
+        router.push('/config');
+      } catch (err) {
+        setError('Error al conectar con la base de datos 🔌');
+        setLoading(false);
+      }
+    }
+
+    authenticateMagicToken(magicToken);
+  }, [router]);
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
