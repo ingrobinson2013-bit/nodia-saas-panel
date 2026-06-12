@@ -21,9 +21,7 @@ export default function Sidebar() {
       {/* Logo */}
       <div className="p-5 border-b border-white/5">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-400 to-cyan-500 flex items-center justify-center">
-            <Bot size={18} className="text-white" />
-          </div>
+          <img src="/logo.jpg" alt="Logo" className="w-9 h-9 rounded-xl object-cover border border-white/10" />
           <div>
             <p className="font-extrabold text-white text-[15px] leading-none">BeautySync Pro</p>
             <p className="text-[11px] text-white/30 font-medium mt-0.5">Chat</p>
