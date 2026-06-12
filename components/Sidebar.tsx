@@ -25,8 +25,8 @@ export default function Sidebar() {
             <Bot size={18} className="text-white" />
           </div>
           <div>
-            <p className="font-extrabold text-white text-[15px] leading-none">NODIA</p>
-            <p className="text-[11px] text-white/30 font-medium mt-0.5">SaaS Panel</p>
+            <p className="font-extrabold text-white text-[15px] leading-none">BeautySync Pro</p>
+            <p className="text-[11px] text-white/30 font-medium mt-0.5">Chat</p>
           </div>
         </div>
       </div>

@@ -7,8 +7,6 @@ import { getTenantId } from "@/lib/tenant";
 
 const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL || "https://nodia-saas-nodia-backend.gvle2r.easypanel.host";
 
-const TENANT_ID = getTenantId();
-
 interface TenantConfig {
   nombre: string;
   plan: string;
@@ -31,6 +29,7 @@ interface WaTemplate {
 }
 
 export default function ConfigPage() {
+  const [tenantId, setTenantId] = useState<string>("");
   const [config, setConfig] = useState<TenantConfig>({
     nombre: "", plan: "", ai_prompt: "",
     wa_phone_id: "", wa_access_token: "", waba_id: "",
@@ -48,25 +47,32 @@ export default function ConfigPage() {
   const [tplMsg, setTplMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
 
   useEffect(() => {
-    supabase.from("tenants").select("*")
-      .eq("tenant_id", TENANT_ID).single()
-      .then(({ data }) => { if (data) setConfig(data); setLoading(false); });
+    const tid = getTenantId();
+    setTenantId(tid);
+    if (tid) {
+      supabase.from("tenants").select("*")
+        .eq("tenant_id", tid).single()
+        .then(({ data }) => { if (data) setConfig(data); setLoading(false); });
+    } else {
+      setLoading(false);
+    }
   }, []);
 
   const loadTemplates = async () => {
+    if (!tenantId) return;
     setTplLoading(true);
     try {
       // Si no hay waba_id, intentar resolverlo automaticamente desde Meta
       let wabaId = config.waba_id;
       if (!wabaId) {
-        const resolveRes = await fetch(`${BACKEND}/api/templates/resolve-waba/${TENANT_ID}`);
+        const resolveRes = await fetch(`${BACKEND}/api/templates/resolve-waba/${tenantId}`);
         if (resolveRes.ok) {
           const resolveData = await resolveRes.json();
           wabaId = resolveData.waba_id;
           setConfig(prev => ({ ...prev, waba_id: wabaId }));
         }
       }
-      const res = await fetch(`${BACKEND}/api/templates/list/${TENANT_ID}`);
+      const res = await fetch(`${BACKEND}/api/templates/list/${tenantId}`);
       const data = await res.json();
       setTemplates(data.templates || []);
     } catch { setTemplates([]); }
@@ -74,14 +80,14 @@ export default function ConfigPage() {
   };
 
   const createTemplate = async () => {
-    if (!tplForm.name || !tplForm.body) return;
+    if (!tplForm.name || !tplForm.body || !tenantId) return;
     setTplSending(true); setTplMsg(null);
     try {
       const res = await fetch(`${BACKEND}/api/templates/create`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          tenant_id: TENANT_ID,
+          tenant_id: tenantId,
           name: tplForm.name.toLowerCase().replace(/\s+/g, "_"),
           category: tplForm.category,
           body: tplForm.body,
@@ -93,7 +99,7 @@ export default function ConfigPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Error");
-      setTplMsg({ type: "ok", text: `Plantilla "${tplForm.name}" enviada a revisión de Meta (24-48h)` });
+      setTplMsg({ type: "ok", text: `Plantilla "${tplForm.name}" en revisión de Meta (24-48h)` });
       setTplForm({ name: "", category: "UTILITY", body: "", header: "", footer: "", body_example: "" });
       loadTemplates();
     } catch (e: unknown) {
@@ -103,7 +109,8 @@ export default function ConfigPage() {
   };
 
   const saveSection = async (fields: Partial<TenantConfig>, section: string) => {
-    await supabase.from("tenants").update(fields).eq("tenant_id", TENANT_ID);
+    if (!tenantId) return;
+    await supabase.from("tenants").update(fields).eq("tenant_id", tenantId);
     setSaved(section);
     setTimeout(() => setSaved(null), 3000);
   };
@@ -163,11 +170,11 @@ export default function ConfigPage() {
         <div className="mb-6 pb-6 border-b border-white/5">
           <p className="text-xs text-white/40 mb-3 font-semibold uppercase tracking-wider">Conexión automática (recomendado)</p>
           <WhatsAppConnect
-            tenantId={TENANT_ID}
+            tenantId={tenantId}
             onConnected={async () => {
               const { data } = await supabase.from("tenants")
                 .select("*")
-                .eq("tenant_id", TENANT_ID)
+                .eq("tenant_id", tenantId)
                 .single();
               if (data) setConfig(data);
             }}

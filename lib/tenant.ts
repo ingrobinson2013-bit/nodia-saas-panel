@@ -4,6 +4,15 @@
 
 export function getTenantId(): string {
   if (typeof window !== 'undefined') {
+    // 1. Check URL query param first for debug/admin override
+    const params = new URLSearchParams(window.location.search);
+    const urlTenant = params.get('tenant') || params.get('tenant_id');
+    if (urlTenant) {
+      localStorage.setItem('nodia_tenant_id', urlTenant);
+      return urlTenant;
+    }
+
+    // 2. Check localStorage
     const stored = localStorage.getItem('nodia_tenant_id');
     if (stored) return stored;
   }
