@@ -21,7 +21,7 @@ export default function Sidebar() {
       {/* Logo */}
       <div className="p-5 border-b border-white/5">
         <div className="flex items-center gap-3">
-          <img src="/logo.jpg" alt="Logo" className="w-9 h-9 rounded-xl object-cover border border-white/10" />
+          <img src="/logo.jpg" alt="BeautySync Pro" className="w-9 h-9 rounded-xl object-cover border border-white/10" />
           <div>
             <p className="font-extrabold text-white text-[15px] leading-none">BeautySync Pro</p>
             <p className="text-[11px] text-white/30 font-medium mt-0.5">Chat</p>
