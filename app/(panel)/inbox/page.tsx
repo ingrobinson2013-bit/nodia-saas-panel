@@ -132,37 +132,72 @@ export default function InboxPage() {
 
   const past24h = isPast24Hours(active);
 
+  // Generate consistent gradient color per session based on name
+  const getAvatarGradient = (name: string) => {
+    const gradients = [
+      'from-violet-500 to-purple-600',
+      'from-cyan-500 to-blue-600',
+      'from-emerald-500 to-teal-600',
+      'from-rose-500 to-pink-600',
+      'from-amber-500 to-orange-600',
+      'from-indigo-500 to-blue-700',
+    ];
+    const idx = (name.charCodeAt(0) || 0) % gradients.length;
+    return gradients[idx];
+  };
+
   return (
-    <div className="flex h-[100dvh] bg-[#07090e] text-white font-sans antialiased overflow-hidden">
-      {/* SIDEBAR — Lista de conversaciones */}
-      {/* Mobile: full width, hidden when chat is open. Desktop: fixed 360px */}
+    <div className="flex h-[100dvh] bg-[#060810] text-white font-sans antialiased overflow-hidden">
+
+      {/* ══════════════════════════════════════
+          SESSION LIST PANEL
+          Mobile: full-screen | Desktop: 360px
+      ══════════════════════════════════════ */}
       <div className={`${
-        mobileView === "chat" ? "hidden md:flex" : "flex"
-      } w-full md:w-[360px] border-r border-white/5 flex-col bg-[#0b0e14] shrink-0`}>
-        {/* Header */}
-        <div className="p-5 border-b border-white/5 space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/10">
-                <MessageCircle size={18} className="text-white" />
+        mobileView === 'chat' ? 'hidden md:flex' : 'flex'
+      } w-full md:w-[360px] flex-col shrink-0 border-r border-white/[0.04]`}
+        style={{ background: 'linear-gradient(180deg, #0d1017 0%, #080b10 100%)' }}
+      >
+        {/* ── Premium Header ── */}
+        <div className="relative px-5 pt-6 pb-5 overflow-hidden"
+          style={{
+            background: 'linear-gradient(135deg, rgba(99,102,241,0.08) 0%, rgba(6,182,212,0.05) 50%, transparent 100%)',
+            borderBottom: '1px solid rgba(255,255,255,0.05)'
+          }}
+        >
+          {/* Glow accent */}
+          <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full bg-cyan-500/5 blur-2xl pointer-events-none" />
+
+          <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-cyan-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
+                  <MessageCircle size={18} className="text-white" />
+                </div>
+                <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-[#0d1017]" />
               </div>
               <div>
-                <span className="font-bold text-base tracking-tight text-white block">Mensajería</span>
-                <span className="text-[10px] text-white/40 font-medium block">BeautySync Pro Inbox</span>
+                <p className="font-extrabold text-[16px] text-white tracking-tight leading-none">Mensajería</p>
+                <p className="text-[11px] text-white/35 font-medium mt-1">
+                  {filtered.length} conversación{filtered.length !== 1 ? 'es' : ''} activa{filtered.length !== 1 ? 's' : ''}
+                </p>
               </div>
             </div>
-            <button 
-              onClick={() => fetchSessions()} 
-              className="p-2.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.08] border border-white/5 text-white/50 hover:text-white transition-all duration-300"
+            <button
+              onClick={() => fetchSessions()}
+              className="w-9 h-9 rounded-xl flex items-center justify-center bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] text-white/40 hover:text-cyan-400 transition-all duration-200"
             >
-              <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
+              <RefreshCw size={14} className={loading ? 'animate-spin text-cyan-400' : ''} />
             </button>
           </div>
-          
-          <div className="flex items-center gap-2.5 bg-white/[0.03] focus-within:bg-white/[0.06] border border-white/5 focus-within:border-cyan-500/30 rounded-2xl px-4 py-3 transition-all duration-300">
-            <Search size={15} className="text-white/30" />
+
+          {/* Search bar */}
+          <div className="flex items-center gap-3 rounded-2xl px-4 py-3 transition-all duration-200"
+            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}
+          >
+            <Search size={15} className="text-white/25 shrink-0" />
             <input
-              className="bg-transparent text-sm text-white placeholder-white/20 outline-none flex-1"
+              className="bg-transparent text-[13px] text-white placeholder-white/20 outline-none flex-1"
               placeholder="Buscar por cliente..."
               value={search}
               onChange={e => setSearch(e.target.value)}
@@ -170,65 +205,78 @@ export default function InboxPage() {
           </div>
         </div>
 
-        {/* Lista */}
-        <div className="flex-1 overflow-y-auto px-2 py-3 space-y-1">
+        {/* ── Session List ── */}
+        <div className="flex-1 overflow-y-auto py-2 px-2 space-y-0.5">
           {loading ? (
-            <div className="flex flex-col items-center justify-center h-48 text-white/20 gap-3">
-              <RefreshCw size={24} className="animate-spin text-cyan-400" />
-              <span className="text-xs">Sincronizando chats...</span>
+            <div className="flex flex-col items-center justify-center h-56 gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-cyan-500/10 flex items-center justify-center">
+                <RefreshCw size={18} className="animate-spin text-cyan-400" />
+              </div>
+              <p className="text-xs text-white/30 font-medium">Cargando conversaciones...</p>
             </div>
           ) : filtered.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-48 text-white/20 gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-white/[0.02] border border-white/5 flex items-center justify-center">
-                <MessageCircle size={20} className="text-white/30" />
+            <div className="flex flex-col items-center justify-center h-56 gap-3">
+              <div className="w-14 h-14 rounded-3xl bg-white/[0.02] border border-white/5 flex items-center justify-center">
+                <MessageCircle size={22} className="text-white/20" />
               </div>
-              <span className="text-xs font-medium">Sin chats de leads en curso</span>
+              <p className="text-xs text-white/30 font-semibold">Sin conversaciones activas</p>
             </div>
           ) : filtered.map(s => {
             const isActive = active?.id === s.id;
+            const initial = (s.name || s.wa_from || 'C').charAt(0).toUpperCase();
+            const gradient = getAvatarGradient(s.name || s.wa_from || '');
+            const lastMsg = getLastMsg(s);
             return (
               <button
                 key={s.id}
-                onClick={() => { setActive(s); setMobileView("chat"); }}
-                className={`w-full text-left px-4 py-3.5 rounded-2xl transition-all duration-300 flex items-center gap-3.5 border ${
-                  isActive 
-                    ? "bg-white/[0.06] border-white/10 shadow-lg shadow-black/20" 
-                    : "bg-transparent border-transparent hover:bg-white/[0.02]"
-                }`}
+                onClick={() => { setActive(s); setMobileView('chat'); }}
+                className="w-full text-left rounded-2xl transition-all duration-200 flex items-center gap-3.5 px-3.5 py-3.5 group relative"
+                style={{
+                  background: isActive
+                    ? 'linear-gradient(135deg, rgba(99,102,241,0.08) 0%, rgba(6,182,212,0.04) 100%)'
+                    : 'transparent',
+                  border: isActive ? '1px solid rgba(99,102,241,0.2)' : '1px solid transparent'
+                }}
               >
-                {/* Avatar con anillo luminoso */}
+                {/* Gradient Avatar */}
                 <div className="relative shrink-0">
-                  <div className={`w-11 h-11 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300 ${
-                    s.bot_mode 
-                      ? "bg-emerald-500/10 text-emerald-400 ring-2 ring-emerald-500/30 shadow-md shadow-emerald-500/5" 
-                      : "bg-violet-500/10 text-violet-400 ring-2 ring-violet-500/30 shadow-md shadow-violet-500/5"
-                  }`}>
-                    {(s.name || s.wa_from).charAt(0).toUpperCase()}
+                  <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${gradient} flex items-center justify-center text-[15px] font-black text-white shadow-lg`}
+                    style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }}
+                  >
+                    {initial}
                   </div>
-                  {/* Glowing Status Dot */}
-                  <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-[#0b0e14] ${
-                    s.bot_mode ? "bg-emerald-500 animate-pulse" : "bg-violet-500"
+                  {/* Status dot */}
+                  <span className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-[#0d1017] ${
+                    s.bot_mode ? 'bg-emerald-400' : 'bg-violet-400'
                   }`} />
                 </div>
 
+                {/* Content */}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-[13.5px] text-white/90 truncate tracking-tight">{s.name || s.wa_from}</span>
-                    <span className="text-[10px] text-white/30 shrink-0 ml-2 font-medium">{formatTime(s.updated_at)}</span>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-bold text-[13.5px] text-white truncate leading-none">
+                      {s.name || s.wa_from}
+                    </span>
+                    <span className="text-[10px] text-white/30 shrink-0 ml-2 tabular-nums">
+                      {formatTime(s.updated_at)}
+                    </span>
                   </div>
-                  <div className="flex items-center gap-1.5 mt-1">
-                    {s.bot_mode ? (
-                      <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[9px] font-extrabold uppercase tracking-wider shrink-0">
-                        <Bot size={8} /> IA
-                      </span>
-                    ) : (
-                      <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-violet-500/10 border border-violet-500/20 text-violet-400 text-[9px] font-extrabold uppercase tracking-wider shrink-0">
-                        <User size={8} /> Agente
-                      </span>
-                    )}
-                    <p className="text-xs text-white/40 truncate leading-none">{getLastMsg(s)}</p>
+                  <div className="flex items-center gap-2">
+                    <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider shrink-0 ${
+                      s.bot_mode
+                        ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20'
+                        : 'bg-violet-500/15 text-violet-400 border border-violet-500/20'
+                    }`}>
+                      {s.bot_mode ? <><Bot size={7} /> IA</> : <><User size={7} /> Agente</>}
+                    </span>
+                    <p className="text-[12px] text-white/40 truncate leading-snug">{lastMsg}</p>
                   </div>
                 </div>
+
+                {/* Active indicator line */}
+                {isActive && (
+                  <div className="absolute left-0 top-1/4 bottom-1/4 w-0.5 rounded-full bg-gradient-to-b from-cyan-400 to-indigo-500" />
+                )}
               </button>
             );
           })}
