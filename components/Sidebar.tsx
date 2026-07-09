@@ -1,12 +1,14 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
+import { getTenantId } from "@/lib/tenant";
 import {
   MessageCircle, Settings, Users, BarChart3,
   Megaphone, LogOut
 } from "lucide-react";
 
-const nav = [
+const navItems = [
   { href: "/inbox",     icon: MessageCircle, label: "Inbox" },
   { href: "/dashboard", icon: BarChart3,     label: "Reportes" },
   { href: "/contactos", icon: Users,         label: "Contactos" },
@@ -16,6 +18,18 @@ const nav = [
 
 export default function Sidebar() {
   const path = usePathname();
+  const [tenantId, setTenantId] = useState("");
+
+  useEffect(() => {
+    // Read tenant from URL param first (saves it to localStorage automatically),
+    // then fall back to localStorage so it persists across navigation.
+    setTenantId(getTenantId());
+  }, []);
+
+  // Always append ?tenant= to every nav link so the tenant survives navigation
+  const withTenant = (href: string) =>
+    tenantId ? `${href}?tenant=${tenantId}` : href;
+
   return (
     <>
       {/* ── DESKTOP sidebar (≥ md) ── */}
@@ -33,12 +47,12 @@ export default function Sidebar() {
 
         {/* Nav */}
         <nav className="flex-1 p-3 space-y-1">
-          {nav.map(({ href, icon: Icon, label }) => {
+          {navItems.map(({ href, icon: Icon, label }) => {
             const active = path.startsWith(href);
             return (
               <Link
                 key={href}
-                href={href}
+                href={withTenant(href)}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${
                   active
                     ? "bg-white/10 text-white"
@@ -62,13 +76,13 @@ export default function Sidebar() {
       </aside>
 
       {/* ── MOBILE bottom nav (< md) ── */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#0a0d14]/95 backdrop-blur-md border-t border-white/10 flex items-center justify-around px-2 py-2 safe-area-inset-bottom">
-        {nav.map(({ href, icon: Icon, label }) => {
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#0a0d14]/95 backdrop-blur-md border-t border-white/10 flex items-center justify-around px-2 py-2">
+        {navItems.map(({ href, icon: Icon, label }) => {
           const active = path.startsWith(href);
           return (
             <Link
               key={href}
-              href={href}
+              href={withTenant(href)}
               className={`flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl transition-all ${
                 active ? "text-cyan-400" : "text-white/30"
               }`}
