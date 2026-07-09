@@ -12,6 +12,7 @@ interface TenantConfig {
   nombre: string;
   plan: string;
   ai_prompt: string;
+  notification_email: string;
   wa_phone_id: string;
   wa_access_token: string;
   waba_id: string;
@@ -159,7 +160,7 @@ export default function ConfigPage() {
   const [unlocked, setUnlocked] = useState(false);
   const [tenantId, setTenantId] = useState<string>("");
   const [config, setConfig] = useState<TenantConfig>({
-    nombre: "", plan: "", ai_prompt: "",
+    nombre: "", plan: "", ai_prompt: "", notification_email: "",
     wa_phone_id: "", wa_access_token: "", waba_id: "",
     odoo_url: "", odoo_db: "", odoo_user: "", odoo_api_key: "",
   });
@@ -283,6 +284,30 @@ export default function ConfigPage() {
           <input className={inputClass} value={config.nombre} onChange={set("nombre")} placeholder="Ej. Barbería El Estilo" />
         </div>
         <SaveButton section="negocio" fields={{ nombre: config.nombre }} />
+      </Section>
+
+      {/* Notificaciones */}
+      <Section icon={<span style={{fontSize:16}}>&#128276;</span>} title="Notificaciones por Correo">
+        <div className="bg-gradient-to-r from-indigo-500/5 to-cyan-500/5 border border-indigo-500/15 rounded-2xl p-4 mb-5">
+          <p className="text-[12px] text-white/60 leading-relaxed">
+            Cada vez que el bot reserve una cita, te llegará un correo con los datos completos del cliente:
+            nombre, teléfono, servicio, fecha y hora.
+          </p>
+        </div>
+        <div>
+          <label className={labelClass}>Correo de notificación de citas</label>
+          <input
+            className={inputClass}
+            type="email"
+            value={config.notification_email}
+            onChange={set("notification_email")}
+            placeholder="ej. josepeluqueria@gmail.com"
+          />
+          <p className="text-[11px] text-white/30 mt-2">
+            A este correo llegarán los avisos cada vez que se agende una cita desde WhatsApp.
+          </p>
+        </div>
+        <SaveButton section="notificaciones" fields={{ notification_email: config.notification_email }} />
       </Section>
 
       {/* Agente IA */}
