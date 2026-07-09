@@ -16,6 +16,7 @@ export default function InboxPage() {
   const [search, setSearch] = useState("");
   const [agentMsg, setAgentMsg] = useState("");
   const [loading, setLoading] = useState(true);
+  const [mobileView, setMobileView] = useState<"list" | "chat">("list");
   const bottomRef = useRef<HTMLDivElement>(null);
 
   // Cargar sesiones
@@ -132,9 +133,12 @@ export default function InboxPage() {
   const past24h = isPast24Hours(active);
 
   return (
-    <div className="flex h-screen bg-[#07090e] text-white font-sans antialiased">
+    <div className="flex h-[100dvh] bg-[#07090e] text-white font-sans antialiased overflow-hidden">
       {/* SIDEBAR — Lista de conversaciones */}
-      <div className="w-[360px] border-r border-white/5 flex flex-col bg-[#0b0e14] shrink-0">
+      {/* Mobile: full width, hidden when chat is open. Desktop: fixed 360px */}
+      <div className={`${
+        mobileView === "chat" ? "hidden md:flex" : "flex"
+      } w-full md:w-[360px] border-r border-white/5 flex-col bg-[#0b0e14] shrink-0`}>
         {/* Header */}
         <div className="p-5 border-b border-white/5 space-y-4">
           <div className="flex items-center justify-between">
@@ -185,7 +189,7 @@ export default function InboxPage() {
             return (
               <button
                 key={s.id}
-                onClick={() => setActive(s)}
+                onClick={() => { setActive(s); setMobileView("chat"); }}
                 className={`w-full text-left px-4 py-3.5 rounded-2xl transition-all duration-300 flex items-center gap-3.5 border ${
                   isActive 
                     ? "bg-white/[0.06] border-white/10 shadow-lg shadow-black/20" 
@@ -232,11 +236,24 @@ export default function InboxPage() {
       </div>
 
       {/* CHAT WINDOW */}
+      {/* Mobile: full width, hidden when list is shown. Desktop: flex-1 always visible */}
       {active ? (
-        <div className="flex-1 flex flex-col bg-[#07090e]">
+        <div className={`${
+          mobileView === "list" ? "hidden md:flex" : "flex"
+        } flex-1 flex-col bg-[#07090e]`}>
           {/* Chat Header */}
-          <div className="px-6 py-4.5 border-b border-white/5 flex items-center justify-between bg-[#0b0e14]/50 backdrop-blur-md sticky top-0 z-10">
-            <div className="flex items-center gap-4">
+          <div className="px-4 md:px-6 py-3 md:py-4 border-b border-white/5 flex items-center justify-between bg-[#0b0e14]/50 backdrop-blur-md sticky top-0 z-10">
+            <div className="flex items-center gap-3">
+              {/* Back button — mobile only */}
+              <button
+                onClick={() => setMobileView("list")}
+                className="md:hidden p-2 -ml-1 rounded-xl text-white/50 hover:text-white hover:bg-white/5 transition-all"
+                aria-label="Volver a la lista"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
               <div className={`w-11 h-11 rounded-full flex items-center justify-center font-bold text-base ${
                 active.bot_mode 
                   ? "bg-emerald-500/10 text-emerald-400 ring-2 ring-emerald-500/20" 
@@ -373,7 +390,8 @@ export default function InboxPage() {
           </div>
         </div>
       ) : (
-        <div className="flex-1 flex flex-col items-center justify-center text-white/20 gap-4" style={{
+        /* Empty state — desktop only; on mobile the list is always shown when no chat active */
+        <div className="hidden md:flex flex-1 flex-col items-center justify-center text-white/20 gap-4" style={{
           background: 'radial-gradient(circle at 50% 50%, rgba(6, 182, 212, 0.015) 0%, transparent 60%)'
         }}>
           <div className="w-16 h-16 rounded-3xl bg-white/[0.02] border border-white/5 flex items-center justify-center shadow-lg shadow-black/10">
