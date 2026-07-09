@@ -5,7 +5,10 @@ import Sidebar from "@/components/Sidebar";
 
 const inter = Inter({ subsets: ["latin"] });
 
-export const metadata: Metadata = { title: "NODIA Panel" };
+export const metadata: Metadata = { 
+  title: "BeautySync Pro+",
+  description: "Panel de gestión WhatsApp Business AI"
+};
 
 export default function PanelLayout({ children }: { children: React.ReactNode }) {
   return (
