@@ -1,11 +1,12 @@
 "use client";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import { Bot, Save, CheckCircle, MessageCircle, Link2, Building2, Eye, EyeOff, FileText, Plus, RefreshCw, Clock, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
+import { Bot, Save, CheckCircle, MessageCircle, Link2, Building2, Eye, EyeOff, FileText, Plus, RefreshCw, Clock, CheckCircle2, XCircle, AlertCircle, Lock, ShieldCheck } from "lucide-react";
 import WhatsAppConnect from "@/components/WhatsAppConnect";
 import { getTenantId } from "@/lib/tenant";
 
 const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL || "https://nodia-saas-nodia-backend.gvle2r.easypanel.host";
+const CONFIG_PASSWORD = "admin123";
 
 interface TenantConfig {
   nombre: string;
@@ -28,16 +29,143 @@ interface WaTemplate {
   category: string;
 }
 
+/* ─────────────────────────────────────────────
+   Lock screen — shown before config is accessible
+───────────────────────────────────────────── */
+function ConfigLockScreen({ onUnlock }: { onUnlock: () => void }) {
+  const [pin, setPin]       = useState("");
+  const [error, setError]   = useState("");
+  const [shake, setShake]   = useState(false);
+
+  function attempt() {
+    if (pin === CONFIG_PASSWORD) {
+      sessionStorage.setItem("bsp_config_unlocked", "1");
+      onUnlock();
+    } else {
+      setError("Clave incorrecta");
+      setShake(true);
+      setPin("");
+      setTimeout(() => setShake(false), 500);
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-[#060810] flex items-center justify-center p-4" style={{
+      background: 'linear-gradient(135deg, #060810 0%, #0d1117 100%)'
+    }}>
+      {/* Glow */}
+      <div className="fixed inset-0 pointer-events-none">
+        <div style={{ position:'absolute', top:'20%', left:'30%', width:400, height:400, borderRadius:'50%', background:'radial-gradient(circle, rgba(99,102,241,0.07) 0%, transparent 70%)' }} />
+        <div style={{ position:'absolute', bottom:'10%', right:'20%', width:300, height:300, borderRadius:'50%', background:'radial-gradient(circle, rgba(6,182,212,0.05) 0%, transparent 70%)' }} />
+      </div>
+
+      <div
+        className={`w-full max-w-sm relative z-10 transition-all duration-150 ${ shake ? 'translate-x-2' : '' }`}
+        style={{ animation: shake ? 'shake 0.4s ease' : 'none' }}
+      >
+        <style>{`
+          @keyframes shake {
+            0%,100%{transform:translateX(0)}
+            20%{transform:translateX(-8px)}
+            40%{transform:translateX(8px)}
+            60%{transform:translateX(-6px)}
+            80%{transform:translateX(6px)}
+          }
+          .lock-card { animation: fadeUp 0.5s cubic-bezier(0.16,1,0.3,1) both; }
+          @keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+        `}</style>
+
+        {/* Gradient border */}
+        <div style={{ position:'absolute', inset:-1, borderRadius:24, background:'linear-gradient(135deg, rgba(99,102,241,0.25), rgba(6,182,212,0.15))', filter:'blur(0.5px)' }} />
+
+        <div className="lock-card relative rounded-3xl p-8 text-white" style={{
+          background: 'linear-gradient(135deg, rgba(15,18,28,0.97) 0%, rgba(10,13,20,0.99) 100%)',
+          backdropFilter: 'blur(40px)',
+          border: '1px solid rgba(255,255,255,0.06)',
+          boxShadow: '0 32px 64px rgba(0,0,0,0.6)',
+        }}>
+          {/* Icon */}
+          <div className="flex flex-col items-center mb-8">
+            <div className="relative mb-4">
+              <div className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg" style={{ background: 'linear-gradient(135deg, #6366f1, #4338ca)' }}>
+                <Lock size={28} className="text-white" />
+              </div>
+              <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-amber-400 border-2 border-[#060810] flex items-center justify-center">
+                <span className="text-[8px] font-black text-amber-900">!</span>
+              </div>
+            </div>
+            <h2 className="text-xl font-black tracking-tight">Zona Protegida</h2>
+            <p className="text-[12px] text-white/35 mt-1.5 text-center leading-relaxed">
+              Esta sección requiere la clave de administrador<br />para proteger la configuración del agente.
+            </p>
+          </div>
+
+          {/* Divider */}
+          <div className="h-px mb-6" style={{ background: 'linear-gradient(90deg,transparent,rgba(255,255,255,0.06),transparent)' }} />
+
+          {/* Input */}
+          <div className="mb-4">
+            <label className="block text-[10px] font-bold text-white/35 uppercase tracking-widest mb-2">Clave de administrador</label>
+            <div className="relative">
+              <input
+                type="password"
+                value={pin}
+                onChange={e => { setPin(e.target.value); setError(""); }}
+                onKeyDown={e => e.key === "Enter" && attempt()}
+                placeholder="••••••••"
+                autoFocus
+                className="w-full rounded-xl px-4 py-3 text-sm text-white outline-none transition-all duration-200"
+                style={{
+                  background: 'rgba(255,255,255,0.04)',
+                  border: error ? '1px solid rgba(239,68,68,0.5)' : '1px solid rgba(255,255,255,0.08)',
+                  boxShadow: error ? '0 0 0 3px rgba(239,68,68,0.1)' : 'none',
+                }}
+              />
+              <Lock size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-white/20" />
+            </div>
+            {error && (
+              <p className="text-[11px] text-red-400 font-medium mt-2 flex items-center gap-1.5">
+                <XCircle size={11} /> {error}
+              </p>
+            )}
+          </div>
+
+          {/* Button */}
+          <button
+            onClick={attempt}
+            disabled={!pin}
+            className="w-full py-3.5 rounded-xl text-sm font-black text-white transition-all duration-200 disabled:opacity-40"
+            style={{
+              background: 'linear-gradient(135deg, #6366f1 0%, #4338ca 50%, #06b6d4 100%)',
+              boxShadow: '0 8px 24px rgba(99,102,241,0.3)',
+            }}
+          >
+            <span className="flex items-center justify-center gap-2">
+              <ShieldCheck size={15} /> Desbloquear Configuración
+            </span>
+          </button>
+
+          {/* Footer note */}
+          <p className="text-center text-[10px] text-white/15 mt-5 font-medium">
+            Solo el administrador BeautySync Pro+ tiene acceso.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ConfigPage() {
+  const [unlocked, setUnlocked] = useState(false);
   const [tenantId, setTenantId] = useState<string>("");
   const [config, setConfig] = useState<TenantConfig>({
     nombre: "", plan: "", ai_prompt: "",
     wa_phone_id: "", wa_access_token: "", waba_id: "",
     odoo_url: "", odoo_db: "", odoo_user: "", odoo_api_key: "",
   });
-  const [saved, setSaved] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [showToken, setShowToken] = useState(false);
+  const [saved, setSaved]       = useState<string | null>(null);
+  const [loading, setLoading]   = useState(true);
+  const [showToken, setShowToken]   = useState(false);
   const [showOdooKey, setShowOdooKey] = useState(false);
   // Templates state
   const [templates, setTemplates] = useState<WaTemplate[]>([]);
@@ -45,6 +173,14 @@ export default function ConfigPage() {
   const [tplForm, setTplForm] = useState({ name: "", category: "UTILITY", body: "", header: "", footer: "", body_example: "" });
   const [tplSending, setTplSending] = useState(false);
   const [tplMsg, setTplMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+
+  // Check session unlock on mount
+  useEffect(() => {
+    if (sessionStorage.getItem("bsp_config_unlocked") === "1") setUnlocked(true);
+  }, []);
+
+  // If not unlocked, show lock screen
+  if (!unlocked) return <ConfigLockScreen onUnlock={() => setUnlocked(true)} />;
 
   useEffect(() => {
     const tid = getTenantId();
