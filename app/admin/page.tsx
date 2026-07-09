@@ -167,7 +167,7 @@ export default function AdminPage() {
               <ShieldCheck size={28} className="text-white" />
             </div>
           </div>
-          <h1 className="text-2xl font-extrabold text-white text-center mb-1 tracking-tight">NODIA Admin</h1>
+          <h1 className="text-2xl font-extrabold text-white text-center mb-1 tracking-tight">BeautySync Pro+ Admin</h1>
           <p className="text-white/30 text-sm text-center mb-8">Panel de Control Maestro</p>
           <form onSubmit={handleLogin} className="space-y-4">
             <input
@@ -210,7 +210,7 @@ export default function AdminPage() {
               <ShieldCheck size={22} className="text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-extrabold text-white tracking-tight">NODIA Admin</h1>
+              <h1 className="text-xl font-extrabold text-white tracking-tight">BeautySync Pro+ Admin</h1>
               <div className="flex items-center gap-2 mt-0.5">
                 <span className="relative flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />

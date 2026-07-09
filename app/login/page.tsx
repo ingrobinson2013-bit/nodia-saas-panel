@@ -388,7 +388,7 @@ export default function LoginPage() {
           textAlign: 'center', fontSize: 11, color: 'rgba(255,255,255,0.1)',
           fontWeight: 500, letterSpacing: '0.05em', fontFamily: 'Inter, sans-serif',
         }}>
-          © 2024 BeautySync Pro+ · Powered by NODIA AI
+          © 2024 BeautySync Pro+ · Todos los derechos reservados
         </p>
       </div>
     </>

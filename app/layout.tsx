@@ -5,8 +5,8 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "NODIA Panel | Agente IA WhatsApp",
-  description: "Panel de control para tu agente IA de WhatsApp",
+  title: "BeautySync Pro+",
+  description: "Panel de gestión WhatsApp Business AI",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

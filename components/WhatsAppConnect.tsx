@@ -107,7 +107,7 @@ export default function WhatsAppConnect({ tenantId, onConnected }: Props) {
           <CheckCircle size={20} className="text-emerald-400 shrink-0" />
           <div>
             <p className="text-sm font-bold text-emerald-400">¡WhatsApp conectado exitosamente!</p>
-            <p className="text-xs text-white/40 mt-0.5">Tu número ya está activo en NODIA</p>
+            <p className="text-xs text-white/40 mt-0.5">Tu número ya está activo en BeautySync Pro+</p>
           </div>
         </div>
       ) : (
