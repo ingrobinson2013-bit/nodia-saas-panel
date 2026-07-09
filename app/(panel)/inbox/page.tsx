@@ -27,7 +27,7 @@ export default function InboxPage() {
       .from("chat_sessions")
       .select("*")
       .eq("tenant_id", activeTid)
-      .eq("estado", "activo")
+      .not("estado", "in", "(archivado,cerrado)")
       .order("updated_at", { ascending: false });
     setSessions((data as ChatSession[]) || []);
     setLoading(false);
