@@ -19,6 +19,17 @@ export default function LoginPage() {
   const [showPass, setShowPass] = useState(false);
   const [focused, setFocused]   = useState<string | null>(null);
 
+  /* ── Limpiar sesión anterior al entrar al login ── */
+  useEffect(() => {
+    supabase.auth.signOut();
+    localStorage.removeItem('nodia_tenant_id');
+    localStorage.removeItem('nodia_tenant_nombre');
+    localStorage.removeItem('nodia_tenant_plan');
+    localStorage.removeItem('bsp_tenant_id');
+    localStorage.removeItem('bsp_tenant_nombre');
+    sessionStorage.removeItem('bsp_config_unlocked');
+  }, []);
+
   /* ── Magic Link ── */
   useEffect(() => {
     if (typeof window === 'undefined') return;

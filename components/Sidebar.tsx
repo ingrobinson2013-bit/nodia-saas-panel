@@ -1,8 +1,9 @@
 "use client";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getTenantId } from "@/lib/tenant";
+import { supabase } from "@/lib/supabase";
 import {
   MessageCircle, Settings, Users, BarChart3,
   Megaphone, LogOut
@@ -18,13 +19,27 @@ const navItems = [
 
 export default function Sidebar() {
   const path = usePathname();
+  const router = useRouter();
   const [tenantId, setTenantId] = useState("");
 
   useEffect(() => {
-    // Read tenant from URL param first (saves it to localStorage automatically),
-    // then fall back to localStorage so it persists across navigation.
     setTenantId(getTenantId());
   }, []);
+
+  async function handleLogout() {
+    // 1. Cerrar sesión en Supabase Auth
+    await supabase.auth.signOut();
+    // 2. Limpiar TODO el localStorage
+    localStorage.removeItem('nodia_tenant_id');
+    localStorage.removeItem('nodia_tenant_nombre');
+    localStorage.removeItem('nodia_tenant_plan');
+    localStorage.removeItem('bsp_tenant_id');
+    localStorage.removeItem('bsp_tenant_nombre');
+    // 3. Limpiar sessionStorage (config lock)
+    sessionStorage.removeItem('bsp_config_unlocked');
+    // 4. Redirigir al login
+    router.push('/login');
+  }
 
   // Always append ?tenant= to every nav link so the tenant survives navigation
   const withTenant = (href: string) =>
@@ -68,7 +83,10 @@ export default function Sidebar() {
 
         {/* Footer */}
         <div className="p-3 border-t border-white/5">
-          <button className="flex items-center gap-3 px-3 py-2.5 w-full rounded-xl text-sm font-semibold text-white/30 hover:text-rose-400 hover:bg-rose-500/10 transition-all">
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-3 px-3 py-2.5 w-full rounded-xl text-sm font-semibold text-white/30 hover:text-rose-400 hover:bg-rose-500/10 transition-all"
+          >
             <LogOut size={17} />
             Cerrar sesión
           </button>
