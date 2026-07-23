@@ -167,15 +167,19 @@ export default function CampanasPage() {
         rawPhone = parts[0];
       }
 
-      // Si el nombre resultó ser solo dígitos y el teléfono texto, intercambiarlos
-      if (/^\+?\d+$/.test(name) && !/^\+?\d+$/.test(rawPhone)) {
-        const temp = name;
-        name = rawPhone || "Cliente";
-        rawPhone = temp;
+      // Manejar notación científica de Excel (ej: 5,73204E+11 o 5.73204E+11)
+      let phoneStr = rawPhone;
+      if (/[eE]\+?\d+/.test(phoneStr)) {
+        try {
+          const num = Number(phoneStr.replace(",", "."));
+          if (!isNaN(num)) {
+            phoneStr = num.toLocaleString("fullwide", { useGrouping: false });
+          }
+        } catch {}
       }
 
       // Sanitizar dígitos
-      const cleanDigits = rawPhone.replace(/\D/g, "");
+      const cleanDigits = phoneStr.replace(/\D/g, "");
       let formatted = cleanDigits;
       let valid = false;
 
@@ -359,6 +363,16 @@ export default function CampanasPage() {
                 rows={6}
                 className="w-full bg-[#131926] border border-white/10 rounded-xl p-4 text-xs font-mono text-white/90 focus:outline-none focus:border-indigo-500 transition-all resize-none leading-relaxed"
               />
+            </div>
+
+            {/* Tip Excel Notación Científica */}
+            <div className="bg-[#131926] border border-cyan-500/20 rounded-xl p-3 text-xs text-white/70 space-y-1">
+              <p className="font-bold text-cyan-400 flex items-center gap-1.5">
+                💡 Tip para guardar tu Excel en CSV sin errores de notación científica:
+              </p>
+              <p className="text-[11px] text-white/60 leading-relaxed">
+                Si los números en Excel se ven como <code className="bg-white/10 text-amber-300 px-1 py-0.5 rounded">5,73204E+11</code>, selecciona la Columna B (Teléfono) en Excel ➔ Clic derecho ➔ <strong>Formato de Celdas</strong> ➔ Clic en <strong>Número</strong> (pon 0 decimales) o <strong>Texto</strong> ➔ Luego guarda como CSV.
+              </p>
             </div>
 
             {/* Resumen Sanitización */}
