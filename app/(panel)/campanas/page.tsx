@@ -45,9 +45,9 @@ export default function CampanasPage() {
   // Form states
   const [campaignName, setCampaignName] = useState("Campaña Remarketing Scraping");
   const [rawInput, setRawInput] = useState("");
-  const [messageType, setMessageType] = useState<"text" | "template">("text");
+  const [messageType, setMessageType] = useState<"text" | "template">("template");
   const [messageText, setMessageText] = useState(PRESET_MESSAGES[0].text);
-  const [templateName, setTemplateName] = useState("");
+  const [templateName, setTemplateName] = useState("contacto_inicial_beautysyncpro");
   const [availableTemplates, setAvailableTemplates] = useState<any[]>([]);
   const [delaySeconds, setDelaySeconds] = useState<number>(1.0);
 
