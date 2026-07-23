@@ -431,7 +431,7 @@ export default function CampanasPage() {
                     )
                   ))}
                 </select>
-                {templateName === "contacto_inicial_beautysyncpro" && (
+                {templateName.includes("contacto_inicial") && (
                   <div className="mt-3 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-xs text-emerald-300">
                     ✨ <strong>Plantilla Oficial Seleccionada:</strong> Incluye cabecera con imagen promocional de BeautySync Pro y personalización de saludo.
                   </div>
