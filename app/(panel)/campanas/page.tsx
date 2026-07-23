@@ -99,43 +99,86 @@ export default function CampanasPage() {
     }
   };
 
-  // Parse raw contacts input (line by line or CSV format)
+  // Parse raw contacts input (line by line or CSV format with smart header detection)
   useEffect(() => {
     if (!rawInput.trim()) {
       setParsedContacts([]);
       return;
     }
 
-    const lines = rawInput.split(/\r?\n/);
+    const lines = rawInput.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    if (lines.length === 0) {
+      setParsedContacts([]);
+      return;
+    }
+
     const parsed: ContactParsed[] = [];
+    let nameIdx = 0;
+    let phoneIdx = 1;
+    let startLine = 0;
 
-    lines.forEach((line) => {
-      const trimmed = line.trim();
-      if (!trimmed) return;
+    // Detectar encabezado CSV
+    const firstLineLower = lines[0].toLowerCase();
+    const firstDelimiter = lines[0].includes(";") ? ";" : lines[0].includes("\t") ? "\t" : ",";
 
-      // Formatos soportados: "Nombre, 3001234567" o solo "3001234567"
+    if (
+      firstLineLower.includes("nombre") ||
+      firstLineLower.includes("name") ||
+      firstLineLower.includes("cliente") ||
+      firstLineLower.includes("telefono") ||
+      firstLineLower.includes("phone") ||
+      firstLineLower.includes("celular") ||
+      firstLineLower.includes("whatsapp") ||
+      firstLineLower.includes("numero")
+    ) {
+      startLine = 1; // Omitir la fila de encabezado
+      const headers = lines[0].split(firstDelimiter).map((h) => h.trim().toLowerCase());
+      headers.forEach((h, idx) => {
+        if (h.includes("nombre") || h.includes("name") || h.includes("cliente") || h.includes("contacto")) {
+          nameIdx = idx;
+        }
+        if (
+          h.includes("telefono") ||
+          h.includes("phone") ||
+          h.includes("celular") ||
+          h.includes("whatsapp") ||
+          h.includes("numero") ||
+          h.includes("mobile")
+        ) {
+          phoneIdx = idx;
+        }
+      });
+    }
+
+    for (let i = startLine; i < lines.length; i++) {
+      const line = lines[i];
+      if (!line) continue;
+
+      const delimiter = line.includes(";") ? ";" : line.includes("\t") ? "\t" : ",";
+      const parts = line.split(delimiter).map((p) => p.trim());
+
       let name = "Cliente";
-      let rawPhone = trimmed;
+      let rawPhone = line;
 
-      if (trimmed.includes(",")) {
-        const parts = trimmed.split(",");
-        if (parts.length >= 2) {
-          name = parts[0].trim() || "Cliente";
-          rawPhone = parts[1].trim();
-        }
-      } else if (trimmed.includes(";")) {
-        const parts = trimmed.split(";");
-        if (parts.length >= 2) {
-          name = parts[0].trim() || "Cliente";
-          rawPhone = parts[1].trim();
-        }
+      if (parts.length >= 2) {
+        name = parts[nameIdx] !== undefined ? parts[nameIdx] : parts[0];
+        rawPhone = parts[phoneIdx] !== undefined ? parts[phoneIdx] : parts[1];
+      } else if (parts.length === 1) {
+        rawPhone = parts[0];
       }
 
-      // Sanitizar número
+      // Si el nombre resultó ser solo dígitos y el teléfono texto, intercambiarlos
+      if (/^\+?\d+$/.test(name) && !/^\+?\d+$/.test(rawPhone)) {
+        const temp = name;
+        name = rawPhone || "Cliente";
+        rawPhone = temp;
+      }
+
+      // Sanitizar dígitos
       const cleanDigits = rawPhone.replace(/\D/g, "");
       let formatted = cleanDigits;
-
       let valid = false;
+
       if (cleanDigits.length === 10 && cleanDigits.startsWith("3")) {
         formatted = "57" + cleanDigits;
         valid = true;
@@ -146,12 +189,12 @@ export default function CampanasPage() {
       }
 
       parsed.push({
-        raw: trimmed,
+        raw: line,
         phone: formatted,
-        name: name,
+        name: name || "Cliente",
         valid: valid,
       });
-    });
+    }
 
     setParsedContacts(parsed);
   }, [rawInput]);
