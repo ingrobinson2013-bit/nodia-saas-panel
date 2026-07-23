@@ -25,16 +25,16 @@ interface CampaignHistory {
 
 const PRESET_MESSAGES = [
   {
+    title: "🚀 BeautySync Pro (TESO Consulting)",
+    text: `Hola {nombre} 👋\n\nTe escribimos de TESO Consulting con una novedad importante.\n\nLanzamos BeautySync Pro: el primer software para barberías y salones que se subsidia con tus compras de insumos.\n\n✅ Agenda inteligente 24/7\n✅ Sitio Web y App de Reservas\n✅ Profesionales Ilimitados\n✅ Facturación electrónica DIAN (Opcional)\n✅ Control de inventario\n✅ Comisiones automatizadas\n\nActivación con la Compra de tus Insumos de las Marcas Aliadas\nSin mensualidades fijas. Pagas según tu volumen de Compra.\n\n¿Te gustaría conocer cómo funciona?`,
+  },
+  {
     title: "🎁 Descuento de Reagendamiento",
     text: "Hola {nombre}! 💇‍♀️ Notamos que hace tiempo no nos visitas en {negocio}. Te regalamos un 15% de descuento especial en tu próxima cita esta semana. ¿Te agendamos hoy mismo?",
   },
   {
     title: "✂️ Promoción de la Semana",
     text: "¡Hola {nombre}! ✂️ En {negocio} tenemos lugares disponibles para este fin de semana con atención prioritaria. ¿Te gustaría apartar tu cupo?",
-  },
-  {
-    title: "✨ Tratamiento de Cortesía",
-    text: "Hola {nombre}! Queremos consentirte en {negocio}. Reserva tu servicio hoy y te regalamos una hidratación/masaje de cortesía. ¿A qué hora te queda mejor?",
   },
 ];
 
