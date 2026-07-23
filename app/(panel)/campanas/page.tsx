@@ -203,6 +203,41 @@ export default function CampanasPage() {
     setParsedContacts(parsed);
   }, [rawInput]);
 
+  // Consultar historial de remarketing enviado a los contactos ingresados
+  const [historyMap, setHistoryMap] = useState<Record<string, any>>({});
+  const [skipDuplicates, setSkipDuplicates] = useState<boolean>(true);
+  const [checkingHistory, setCheckingHistory] = useState<boolean>(false);
+
+  useEffect(() => {
+    const validPhones = parsedContacts.filter((c) => c.valid).map((c) => c.phone);
+    if (validPhones.length === 0 || !tenantId) {
+      setHistoryMap({});
+      return;
+    }
+
+    const checkHistory = async () => {
+      setCheckingHistory(true);
+      try {
+        const res = await fetch(`${backendUrl}/api/campaigns/check-contacts`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ tenant_id: tenantId, phones: validPhones }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setHistoryMap(data.results || {});
+        }
+      } catch {
+        setHistoryMap({});
+      } finally {
+        setCheckingHistory(false);
+      }
+    };
+
+    const timer = setTimeout(checkHistory, 500);
+    return () => clearTimeout(timer);
+  }, [parsedContacts, tenantId, backendUrl]);
+
   // Handle CSV / TXT file upload
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -220,7 +255,17 @@ export default function CampanasPage() {
 
   // Launch Campaign
   const handleLaunchCampaign = async () => {
-    const validList = parsedContacts.filter((c) => c.valid);
+    let validList = parsedContacts.filter((c) => c.valid);
+
+    // Si la opción de omitir duplicados está activa, filtrar contactos con envío previo
+    if (skipDuplicates) {
+      validList = validList.filter((c) => !historyMap[c.phone]?.already_sent);
+    }
+
+    if (validList.length === 0) {
+      alert("No hay contactos pendientes de envío (todos los ingresados ya recibieron remarketing previamente o son inválidos).");
+      return;
+    }
     if (validList.length === 0) {
       alert("Por favor ingresa al menos un número telefónico válido.");
       return;
@@ -375,22 +420,43 @@ export default function CampanasPage() {
               </p>
             </div>
 
-            {/* Resumen Sanitización */}
+            {/* Resumen Sanitización y Filtro Histórico */}
             {parsedContacts.length > 0 && (
-              <div className="flex items-center justify-between bg-white/5 border border-white/10 rounded-xl p-3.5 text-xs">
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-1.5 text-emerald-400 font-semibold">
-                    <CheckCircle2 size={16} />
-                    <span>{validCount} Válidos (57...)</span>
-                  </div>
-                  {invalidCount > 0 && (
-                    <div className="flex items-center gap-1.5 text-amber-400 font-semibold">
-                      <AlertCircle size={16} />
-                      <span>{invalidCount} Inválidos / Omitidos</span>
+              <div className="space-y-2">
+                <div className="flex flex-wrap items-center justify-between bg-white/5 border border-white/10 rounded-xl p-3.5 text-xs gap-3">
+                  <div className="flex flex-wrap items-center gap-4">
+                    <div className="flex items-center gap-1.5 text-emerald-400 font-semibold">
+                      <CheckCircle2 size={16} />
+                      <span>{validCount - Object.keys(historyMap).length} Nuevos (Listos)</span>
                     </div>
-                  )}
+                    {Object.keys(historyMap).length > 0 && (
+                      <div className="flex items-center gap-1.5 text-amber-300 font-semibold bg-amber-500/10 px-2 py-1 rounded border border-amber-500/20">
+                        <Clock size={14} />
+                        <span>{Object.keys(historyMap).length} Ya enviados previamente</span>
+                      </div>
+                    )}
+                    {invalidCount > 0 && (
+                      <div className="flex items-center gap-1.5 text-rose-400 font-semibold">
+                        <AlertCircle size={16} />
+                        <span>{invalidCount} Inválidos</span>
+                      </div>
+                    )}
+                  </div>
+                  <span className="text-white/40">Total: {parsedContacts.length}</span>
                 </div>
-                <span className="text-white/40">Total: {parsedContacts.length}</span>
+
+                {/* Checkbox Omitir Duplicados */}
+                {Object.keys(historyMap).length > 0 && (
+                  <label className="flex items-center gap-2 cursor-pointer text-xs text-amber-300/90 font-medium bg-amber-500/5 p-2.5 rounded-xl border border-amber-500/20">
+                    <input
+                      type="checkbox"
+                      checked={skipDuplicates}
+                      onChange={(e) => setSkipDuplicates(e.target.checked)}
+                      className="rounded border-amber-500/40 text-indigo-600 focus:ring-indigo-500 w-4 h-4"
+                    />
+                    <span>Omitir automáticamente contactos que ya hayan recibido remarketing previamente</span>
+                  </label>
+                )}
               </div>
             )}
           </div>
