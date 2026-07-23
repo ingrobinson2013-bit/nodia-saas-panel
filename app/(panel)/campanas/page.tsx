@@ -60,7 +60,7 @@ export default function CampanasPage() {
   const [sendResult, setSendResult] = useState<any>(null);
   const [history, setHistory] = useState<CampaignHistory[]>([]);
 
-  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "https://backend.appteso.cloud";
+  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "https://nodia-saas-nodia-backend.gvle2r.easypanel.host";
 
   useEffect(() => {
     const tid = getTenantId();
