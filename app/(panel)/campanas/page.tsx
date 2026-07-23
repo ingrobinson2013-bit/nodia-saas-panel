@@ -417,17 +417,27 @@ export default function CampanasPage() {
                 <select
                   value={templateName}
                   onChange={(e) => setTemplateName(e.target.value)}
-                  className="w-full bg-[#131926] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-[#131926] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-indigo-500 font-medium"
                 >
                   <option value="">-- Selecciona una plantilla --</option>
+                  <option value="contacto_inicial_beautysyncpro">
+                    ⭐ contacto_inicial_beautysyncpro (Aprobada Oficial) - es_CO
+                  </option>
                   {availableTemplates.map((tpl: any) => (
-                    <option key={tpl.id} value={tpl.name}>
-                      {tpl.name} ({tpl.status}) - {tpl.language}
-                    </option>
+                    tpl.name !== "contacto_inicial_beautysyncpro" && (
+                      <option key={tpl.id} value={tpl.name}>
+                        {tpl.name} ({tpl.status}) - {tpl.language}
+                      </option>
+                    )
                   ))}
                 </select>
-                {availableTemplates.length === 0 && (
-                  <p className="text-xs text-amber-400/80 mt-2">
+                {templateName === "contacto_inicial_beautysyncpro" && (
+                  <div className="mt-3 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-xs text-emerald-300">
+                    ✨ <strong>Plantilla Oficial Seleccionada:</strong> Incluye cabecera con imagen promocional de BeautySync Pro y personalización de saludo.
+                  </div>
+                )}
+              </div>
+            )}
                     No se encontraron plantillas aprobadas en Meta. Puedes usar el modo "Mensaje Directo".
                   </p>
                 )}
@@ -541,12 +551,31 @@ export default function CampanasPage() {
               {/* Chat Body */}
               <div className="p-4 min-h-[280px] bg-[radial-gradient(#111b21_1px,transparent_1px)] [background-size:12px_12px] flex flex-col justify-end">
                 {/* Bubble message */}
-                <div className="bg-[#005c4b] text-white p-3 rounded-2xl rounded-tr-none text-xs shadow-md space-y-1 relative max-w-[90%] self-end">
-                  <p className="leading-relaxed whitespace-pre-wrap">
-                    {messageText
-                      .replace("{nombre}", parsedContacts[0]?.name || "María")
-                      .replace("{negocio}", tenantNombre || "Jose Peluqueria")}
-                  </p>
+                <div className="bg-[#005c4b] text-white p-2.5 rounded-2xl rounded-tr-none text-xs shadow-md space-y-2 relative max-w-[95%] self-end">
+                  {messageType === "template" && templateName === "contacto_inicial_beautysyncpro" ? (
+                    <>
+                      <img
+                        src="https://blog.tesoconsulting.co/wp-content/uploads/2026/05/BeautySync_History_Meta.webp"
+                        alt="Header"
+                        className="w-full h-28 object-cover rounded-xl border border-white/10"
+                      />
+                      <p className="leading-snug text-[11px] whitespace-pre-wrap">
+                        Hola {parsedContacts[0]?.name || "Robinson"} 👋<br/><br/>
+                        Te escribimos de TESO Consulting con una novedad importante.<br/><br/>
+                        Lanzamos <strong>BeautySync Pro</strong>: el primer software para barberías y salones que se subsidia con tus compras de insumos.<br/><br/>
+                        ✅ Agenda inteligente 24/7<br/>
+                        ✅ Sitio Web y App de Reservas<br/>
+                        ✅ Profesionales Ilimitados<br/><br/>
+                        ¿Te gustaría conocer cómo funciona?
+                      </p>
+                    </>
+                  ) : (
+                    <p className="leading-relaxed whitespace-pre-wrap">
+                      {messageText
+                        .replace("{nombre}", parsedContacts[0]?.name || "María")
+                        .replace("{negocio}", tenantNombre || "Jose Peluqueria")}
+                    </p>
+                  )}
                   <div className="text-[9px] text-emerald-200/70 text-right flex items-center justify-end gap-1 mt-1">
                     <span>9:41 AM</span>
                     <span>✓✓</span>
