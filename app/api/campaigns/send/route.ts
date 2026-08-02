@@ -39,6 +39,10 @@ export async function POST(req: NextRequest) {
     template_language = "es",
     contacts = [],
     delay_seconds = 1.0,
+    save_record = true,       // false en lotes intermedios
+    total_override,           // total real de toda la campaña (para el registro)
+    sent_override = 0,        // acumulado de lotes anteriores
+    failed_override = 0,      // acumulado de lotes anteriores
   } = body;
 
   if (!tenant_id) {
@@ -252,28 +256,34 @@ export async function POST(req: NextRequest) {
     }
 
     // 4. Registrar campaña en Supabase
-    try {
-      await fetch(`${SUPABASE_URL}/rest/v1/campaigns`, {
-        method: "POST",
-        headers: {
-          apikey: supabaseKey,
-          Authorization: `Bearer ${supabaseKey}`,
-          "Content-Type": "application/json",
-          Prefer: "return=minimal",
-        },
-        body: JSON.stringify({
-          tenant_id,
-          name: campaign_name,
-          total_contacts: contacts.length,
-          sent_count: sentCount,
-          failed_count: failedCount,
-          message_type,
-          message,
-          created_at: new Date().toISOString(),
-        }),
-      });
-    } catch (_) {
-      // No bloquea si falla el registro
+    // 4. Registrar campaña en Supabase — solo en el último lote
+    if (save_record) {
+      const totalFinal = total_override ?? contacts.length;
+      const sentFinal = sent_override + sentCount;
+      const failedFinal = failed_override + failedCount;
+      try {
+        await fetch(`${SUPABASE_URL}/rest/v1/campaigns`, {
+          method: "POST",
+          headers: {
+            apikey: supabaseKey,
+            Authorization: `Bearer ${supabaseKey}`,
+            "Content-Type": "application/json",
+            Prefer: "return=minimal",
+          },
+          body: JSON.stringify({
+            tenant_id,
+            name: campaign_name,
+            total_contacts: totalFinal,
+            sent_count: sentFinal,
+            failed_count: failedFinal,
+            message_type,
+            message,
+            created_at: new Date().toISOString(),
+          }),
+        });
+      } catch (_) {
+        // No bloquea si falla el registro
+      }
     }
 
     return NextResponse.json({

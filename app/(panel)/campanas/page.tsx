@@ -268,21 +268,16 @@ export default function CampanasPage() {
     reader.readAsText(file);
   };
 
-  // Launch Campaign
+  // Launch Campaign — envío por LOTES para soportar 500+ leads sin timeout
   const handleLaunchCampaign = async () => {
     let validList = parsedContacts.filter((c) => c.valid);
 
-    // Si la opción de omitir duplicados está activa, filtrar contactos con envío previo
     if (skipDuplicates) {
       validList = validList.filter((c) => !historyMap[c.phone]?.already_sent);
     }
 
     if (validList.length === 0) {
-      alert("No hay contactos pendientes de envío (todos los ingresados ya recibieron remarketing previamente o son inválidos).");
-      return;
-    }
-    if (validList.length === 0) {
-      alert("Por favor ingresa al menos un número telefónico válido.");
+      alert("No hay contactos pendientes de envío (todos ya recibieron remarketing o son inválidos).");
       return;
     }
 
@@ -302,33 +297,72 @@ export default function CampanasPage() {
     }
 
     setSending(true);
-    setProgress({ current: 0, total: validList.length, sent: 0, failed: 0 });
     setSendResult(null);
+    setProgress({ current: 0, total: validList.length, sent: 0, failed: 0 });
 
-    const payload = {
-      tenant_id: tenantId,
-      campaign_name: campaignName.trim() || "Campaña Remarketing",
-      message_type: messageType,
-      message: messageText,
-      template_name: templateName || undefined,
-      contacts: validList.map((c) => ({ phone: c.phone, name: c.name })),
-      delay_seconds: delaySeconds,
-    };
+    const BATCH_SIZE = 20; // 20 contactos × 1s delay = ~20s por lote (bien bajo del timeout)
+    const batches: typeof validList[] = [];
+    for (let i = 0; i < validList.length; i += BATCH_SIZE) {
+      batches.push(validList.slice(i, i + BATCH_SIZE));
+    }
+
+    let totalSent = 0;
+    let totalFailed = 0;
+    let currentIdx = 0;
+
+    const campaignNameFinal = campaignName.trim() || "Campaña Remarketing";
 
     try {
-      const res = await fetch(`/api/campaigns/send`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      for (let b = 0; b < batches.length; b++) {
+        const batch = batches[b];
 
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.detail || "Error al enviar campaña");
+        const payload = {
+          tenant_id: tenantId,
+          campaign_name: campaignNameFinal,
+          message_type: messageType,
+          message: messageText,
+          template_name: templateName || undefined,
+          contacts: batch.map((c) => ({ phone: c.phone, name: c.name })),
+          delay_seconds: delaySeconds,
+          // Solo registrar campaña en el último lote para no duplicar
+          save_record: b === batches.length - 1,
+          total_override: validList.length, // total real para el registro final
+          sent_override: totalSent,          // acumulado hasta ahora
+          failed_override: totalFailed,
+        };
+
+        const res = await fetch(`/api/campaigns/send`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || `Error en lote ${b + 1}`);
+        }
+
+        const data = await res.json();
+        totalSent += data.sent || 0;
+        totalFailed += data.failed || 0;
+        currentIdx += batch.length;
+
+        setProgress({
+          current: currentIdx,
+          total: validList.length,
+          sent: totalSent,
+          failed: totalFailed,
+        });
       }
 
-      setSendResult(data);
-      // Refresh history
+      setSendResult({
+        status: "success",
+        campaign_name: campaignNameFinal,
+        total: validList.length,
+        sent: totalSent,
+        failed: totalFailed,
+      });
+
       fetchCampaignHistory(tenantId);
     } catch (err: any) {
       alert(`Error en la campaña: ${err.message}`);
