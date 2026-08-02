@@ -47,7 +47,7 @@ export default function CampanasPage() {
   const [rawInput, setRawInput] = useState("");
   const [messageType, setMessageType] = useState<"text" | "template">("template");
   const [messageText, setMessageText] = useState(PRESET_MESSAGES[0].text);
-  const [templateName, setTemplateName] = useState("contacto_inicial_beautysyncpro");
+  const [templateName, setTemplateName] = useState("");
   const [availableTemplates, setAvailableTemplates] = useState<any[]>([]);
   const [delaySeconds, setDelaySeconds] = useState<number>(1.0);
 
@@ -79,7 +79,12 @@ export default function CampanasPage() {
       const res = await fetch(`${backendUrl}/api/templates/list/${tid}`);
       if (res.ok) {
         const data = await res.json();
-        setAvailableTemplates(data.templates || []);
+        const approved = (data.templates || []).filter((t: any) => t.status === "APPROVED");
+        setAvailableTemplates(approved);
+        // Auto-seleccionar la primera plantilla aprobada disponible
+        if (approved.length > 0) {
+          setTemplateName(approved[0].name);
+        }
       }
     } catch {
       setAvailableTemplates([]);
@@ -537,32 +542,43 @@ export default function CampanasPage() {
                 <label className="block text-xs font-semibold text-white/60 mb-1.5 uppercase tracking-wider">
                   Seleccionar Plantilla Meta Aprobada
                 </label>
-                <select
-                  value={templateName}
-                  onChange={(e) => setTemplateName(e.target.value)}
-                  className="w-full bg-[#131926] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-indigo-500 font-medium"
-                >
-                  <option value="">-- Selecciona una plantilla --</option>
-                  <option value="contacto_inicial_beautysyncpro">
-                    ⭐ contacto_inicial_beautysyncpro (Aprobada Oficial) - es_CO
-                  </option>
-                  {availableTemplates.map((tpl: any) => (
-                    tpl.name !== "contacto_inicial_beautysyncpro" && (
-                      <option key={tpl.id} value={tpl.name}>
-                        {tpl.name} ({tpl.status}) - {tpl.language}
-                      </option>
-                    )
-                  ))}
-                </select>
-                {templateName.includes("contacto_inicial") && (
-                  <div className="mt-3 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-xs text-emerald-300">
-                    ✨ <strong>Plantilla Oficial Seleccionada:</strong> Incluye cabecera con imagen promocional de BeautySync Pro y personalización de saludo.
+
+                {availableTemplates.length === 0 ? (
+                  <div className="flex items-center gap-2 p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-xs text-amber-300">
+                    <RefreshCw size={14} className="animate-spin" />
+                    <span>Cargando plantillas desde Meta...</span>
                   </div>
-                )}
-              </div>
-            )}
-                    No se encontraron plantillas aprobadas en Meta. Puedes usar el modo "Mensaje Directo".
-                  </p>
+                ) : (
+                  <>
+                    <select
+                      value={templateName}
+                      onChange={(e) => setTemplateName(e.target.value)}
+                      className="w-full bg-[#131926] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-indigo-500 font-medium"
+                    >
+                      <option value="">-- Selecciona una plantilla --</option>
+                      {availableTemplates
+                        .filter((tpl: any) => tpl.status === "APPROVED")
+                        .map((tpl: any) => (
+                          <option key={tpl.id || tpl.name} value={tpl.name}>
+                            ✅ {tpl.name} ({tpl.language})
+                          </option>
+                        ))}
+                    </select>
+
+                    {templateName && (
+                      <div className="mt-3 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-xs text-emerald-300">
+                        ✨ <strong>Plantilla seleccionada:</strong>{" "}
+                        {availableTemplates.find((t: any) => t.name === templateName)?.category || ""}{" "}
+                        — Se enviará directamente al destinatario.
+                      </div>
+                    )}
+
+                    {availableTemplates.filter((t: any) => t.status === "APPROVED").length === 0 && (
+                      <p className="mt-2 text-xs text-rose-400">
+                        ⚠️ No tienes plantillas aprobadas en Meta aún. Usa el modo "Mensaje Directo".
+                      </p>
+                    )}
+                  </>
                 )}
               </div>
             )}
