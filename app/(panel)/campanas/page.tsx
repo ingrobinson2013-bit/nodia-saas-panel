@@ -104,7 +104,7 @@ export default function CampanasPage() {
   // Fetch campaign history
   const fetchCampaignHistory = async (tid: string) => {
     try {
-      const res = await fetch(`${backendUrl}/api/campaigns/list/${tid}`);
+      const res = await fetch(`/api/campaigns/list/${tid}`);
       if (res.ok) {
         const data = await res.json();
         setHistory(data.campaigns || []);
@@ -233,7 +233,7 @@ export default function CampanasPage() {
     const checkHistory = async () => {
       setCheckingHistory(true);
       try {
-        const res = await fetch(`${backendUrl}/api/campaigns/check-contacts`, {
+        const res = await fetch(`/api/campaigns/check-contacts`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ tenant_id: tenantId, phones: validPhones }),
@@ -251,7 +251,7 @@ export default function CampanasPage() {
 
     const timer = setTimeout(checkHistory, 500);
     return () => clearTimeout(timer);
-  }, [parsedContacts, tenantId, backendUrl]);
+  }, [parsedContacts, tenantId]);
 
   // Handle CSV / TXT file upload
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -316,7 +316,7 @@ export default function CampanasPage() {
     };
 
     try {
-      const res = await fetch(`${backendUrl}/api/campaigns/send`, {
+      const res = await fetch(`/api/campaigns/send`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
