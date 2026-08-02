@@ -120,6 +120,8 @@ export async function POST(req: NextRequest) {
           let components: any[] = [];
 
           if (cleanTplName === "contacto_inicial_beautysyncpro") {
+            // Usar el header_handle de la plantilla aprobada en Meta
+            // Este es el ID de la imagen almacenada en servidores de WhatsApp
             components = [
               {
                 type: "header",
@@ -127,7 +129,7 @@ export async function POST(req: NextRequest) {
                   {
                     type: "image",
                     image: {
-                      link: "https://gtrxvfqgytkpvdgmzcgu.supabase.co/storage/v1/object/public/public-assets/beautysync_header.jpg",
+                      id: "879411708125416",
                     },
                   },
                 ],
@@ -138,19 +140,8 @@ export async function POST(req: NextRequest) {
               },
             ];
           } else if (cleanTplName === "retoma_pos_electronico") {
-            components = [
-              {
-                type: "header",
-                parameters: [
-                  {
-                    type: "image",
-                    image: {
-                      link: "https://gtrxvfqgytkpvdgmzcgu.supabase.co/storage/v1/object/public/public-assets/beautysync_header.jpg",
-                    },
-                  },
-                ],
-              },
-            ];
+            // Sin header image dinámico — Meta usa la imagen de la plantilla aprobada
+            components = [];
           }
 
           waPayload = {
