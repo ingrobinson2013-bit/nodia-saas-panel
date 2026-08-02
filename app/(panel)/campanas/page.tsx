@@ -75,12 +75,13 @@ export default function CampanasPage() {
     }
   }, []);
 
-  // Fetch approved WhatsApp templates from backend
+  // Fetch approved WhatsApp templates via API Route interna de Next.js (proxy seguro)
+  // El token de Meta nunca se expone al cliente
   const fetchTemplates = async (tid: string) => {
     setLoadingTemplates(true);
     setTemplatesError(false);
     try {
-      const res = await fetch(`${backendUrl}/api/templates/list/${tid}`);
+      const res = await fetch(`/api/templates/${tid}`);
       if (res.ok) {
         const data = await res.json();
         const approved = (data.templates || []).filter((t: any) => t.status === "APPROVED");
