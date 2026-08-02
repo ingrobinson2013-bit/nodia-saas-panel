@@ -49,6 +49,7 @@ export default function CampanasPage() {
   const [messageText, setMessageText] = useState(PRESET_MESSAGES[0].text);
   const [templateName, setTemplateName] = useState("");
   const [availableTemplates, setAvailableTemplates] = useState<any[]>([]);
+  const [loadingTemplates, setLoadingTemplates] = useState<boolean>(true);
   const [delaySeconds, setDelaySeconds] = useState<number>(1.0);
 
   // Parsed contacts state
@@ -75,6 +76,7 @@ export default function CampanasPage() {
 
   // Fetch approved WhatsApp templates from backend
   const fetchTemplates = async (tid: string) => {
+    setLoadingTemplates(true);
     try {
       const res = await fetch(`${backendUrl}/api/templates/list/${tid}`);
       if (res.ok) {
@@ -85,9 +87,13 @@ export default function CampanasPage() {
         if (approved.length > 0) {
           setTemplateName(approved[0].name);
         }
+      } else {
+        setAvailableTemplates([]);
       }
     } catch {
       setAvailableTemplates([]);
+    } finally {
+      setLoadingTemplates(false);
     }
   };
 
@@ -543,10 +549,14 @@ export default function CampanasPage() {
                   Seleccionar Plantilla Meta Aprobada
                 </label>
 
-                {availableTemplates.length === 0 ? (
+                {loadingTemplates ? (
                   <div className="flex items-center gap-2 p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-xs text-amber-300">
                     <RefreshCw size={14} className="animate-spin" />
                     <span>Cargando plantillas desde Meta...</span>
+                  </div>
+                ) : availableTemplates.length === 0 ? (
+                  <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-xs text-rose-300">
+                    ⚠️ No se encontraron plantillas aprobadas en Meta. Usa el modo &quot;Mensaje Directo&quot;.
                   </div>
                 ) : (
                   <>
@@ -556,27 +566,19 @@ export default function CampanasPage() {
                       className="w-full bg-[#131926] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-indigo-500 font-medium"
                     >
                       <option value="">-- Selecciona una plantilla --</option>
-                      {availableTemplates
-                        .filter((tpl: any) => tpl.status === "APPROVED")
-                        .map((tpl: any) => (
-                          <option key={tpl.id || tpl.name} value={tpl.name}>
-                            ✅ {tpl.name} ({tpl.language})
-                          </option>
-                        ))}
+                      {availableTemplates.map((tpl: any) => (
+                        <option key={tpl.id || tpl.name} value={tpl.name}>
+                          ✅ {tpl.name} ({tpl.language})
+                        </option>
+                      ))}
                     </select>
 
                     {templateName && (
                       <div className="mt-3 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-xs text-emerald-300">
                         ✨ <strong>Plantilla seleccionada:</strong>{" "}
                         {availableTemplates.find((t: any) => t.name === templateName)?.category || ""}{" "}
-                        — Se enviará directamente al destinatario.
+                        &mdash; Se enviará directamente al destinatario.
                       </div>
-                    )}
-
-                    {availableTemplates.filter((t: any) => t.status === "APPROVED").length === 0 && (
-                      <p className="mt-2 text-xs text-rose-400">
-                        ⚠️ No tienes plantillas aprobadas en Meta aún. Usa el modo "Mensaje Directo".
-                      </p>
                     )}
                   </>
                 )}
