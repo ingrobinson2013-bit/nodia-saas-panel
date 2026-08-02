@@ -1,5 +1,6 @@
 // app/api/templates/[tenant_id]/route.ts
 // Proxy seguro server-side: obtiene plantillas de Meta sin exponer tokens al cliente
+// Compatible con Next.js 16 (params es Promise)
 
 import { NextRequest, NextResponse } from "next/server";
 
@@ -9,22 +10,25 @@ const GRAPH_URL = "https://graph.facebook.com/v19.0";
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { tenant_id: string } }
+  { params }: { params: Promise<{ tenant_id: string }> }
 ) {
-  const { tenant_id } = params;
+  // En Next.js 16, params es una Promise
+  const { tenant_id } = await params;
 
   if (!tenant_id) {
     return NextResponse.json({ error: "tenant_id requerido" }, { status: 400 });
   }
 
   try {
+    const supabaseKey = SUPABASE_SERVICE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+
     // 1. Obtener waba_id y token desde Supabase con service key (server-side)
     const tenantRes = await fetch(
       `${SUPABASE_URL}/rest/v1/tenants?tenant_id=eq.${tenant_id}&select=waba_id,wa_access_token`,
       {
         headers: {
-          apikey: SUPABASE_SERVICE_KEY,
-          Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
+          apikey: supabaseKey,
+          Authorization: `Bearer ${supabaseKey}`,
         },
       }
     );
@@ -41,7 +45,7 @@ export async function GET(
       );
     }
 
-    // 2. Llamar a Meta Graph API (server-side, token nunca expuesto al cliente)
+    // 2. Llamar a Meta Graph API (server-side — token nunca expuesto al cliente)
     const metaRes = await fetch(
       `${GRAPH_URL}/${wabaId}/message_templates?fields=id,name,status,language,category&limit=50`,
       { headers: { Authorization: `Bearer ${accessToken}` } }
