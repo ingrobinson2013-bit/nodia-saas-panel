@@ -50,6 +50,7 @@ export default function CampanasPage() {
   const [templateName, setTemplateName] = useState("");
   const [availableTemplates, setAvailableTemplates] = useState<any[]>([]);
   const [loadingTemplates, setLoadingTemplates] = useState<boolean>(true);
+  const [templatesError, setTemplatesError] = useState<boolean>(false);
   const [delaySeconds, setDelaySeconds] = useState<number>(1.0);
 
   // Parsed contacts state
@@ -77,21 +78,23 @@ export default function CampanasPage() {
   // Fetch approved WhatsApp templates from backend
   const fetchTemplates = async (tid: string) => {
     setLoadingTemplates(true);
+    setTemplatesError(false);
     try {
       const res = await fetch(`${backendUrl}/api/templates/list/${tid}`);
       if (res.ok) {
         const data = await res.json();
         const approved = (data.templates || []).filter((t: any) => t.status === "APPROVED");
         setAvailableTemplates(approved);
-        // Auto-seleccionar la primera plantilla aprobada disponible
         if (approved.length > 0) {
           setTemplateName(approved[0].name);
         }
       } else {
         setAvailableTemplates([]);
+        setTemplatesError(true);
       }
     } catch {
       setAvailableTemplates([]);
+      setTemplatesError(true);
     } finally {
       setLoadingTemplates(false);
     }
@@ -555,8 +558,21 @@ export default function CampanasPage() {
                     <span>Cargando plantillas desde Meta...</span>
                   </div>
                 ) : availableTemplates.length === 0 ? (
-                  <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-xs text-rose-300">
-                    ⚠️ No se encontraron plantillas aprobadas en Meta. Usa el modo &quot;Mensaje Directo&quot;.
+                  <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-xs space-y-2">
+                    {templatesError ? (
+                      <>
+                        <p className="text-rose-300 font-semibold">⚠️ No se pudo conectar con el servidor para cargar las plantillas.</p>
+                        <p className="text-rose-200/70">Asegúrate de que el backend esté desplegado y luego haz clic en Reintentar.</p>
+                        <button
+                          onClick={() => tenantId && fetchTemplates(tenantId)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 font-semibold transition-all"
+                        >
+                          <RefreshCw size={12} /> Reintentar
+                        </button>
+                      </>
+                    ) : (
+                      <p className="text-rose-300">⚠️ No se encontraron plantillas aprobadas en Meta. Usa el modo &quot;Mensaje Directo&quot;.</p>
+                    )}
                   </div>
                 ) : (
                   <>
