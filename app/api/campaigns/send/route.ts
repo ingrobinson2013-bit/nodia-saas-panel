@@ -210,7 +210,7 @@ export async function POST(req: NextRequest) {
                   "Content-Type": "application/json",
                   Prefer: "return=minimal",
                 },
-                body: JSON.stringify({ history, estado: "agente_ia", updated_at: nowIso }),
+                body: JSON.stringify({ history, estado: "agente_ia", bot_mode: true, updated_at: nowIso }),
               }
             );
           } else {
@@ -227,6 +227,7 @@ export async function POST(req: NextRequest) {
                 wa_from: cleanPhone,
                 name: contactName,
                 estado: "agente_ia",
+                bot_mode: true,
                 history: [campaignMsg],
                 updated_at: nowIso,
               }),
