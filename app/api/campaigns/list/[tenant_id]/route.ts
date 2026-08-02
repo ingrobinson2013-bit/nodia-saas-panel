@@ -24,8 +24,11 @@ export async function GET(
       `${SUPABASE_URL}/rest/v1/campaigns?tenant_id=eq.${tenant_id}&order=created_at.desc&limit=20`,
       { headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` } }
     );
-    const campaigns = await res.json();
-    return NextResponse.json({ campaigns: campaigns || [] });
+    const data = await res.json();
+    // Garantizar que siempre retornamos un array — si la tabla no existe
+    // Supabase devuelve un objeto de error, no un array
+    const campaigns = Array.isArray(data) ? data : [];
+    return NextResponse.json({ campaigns });
   } catch {
     return NextResponse.json({ campaigns: [] });
   }
