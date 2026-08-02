@@ -375,23 +375,23 @@ export default function CampanasPage() {
   const invalidCount = parsedContacts.filter((c) => !c.valid).length;
 
   return (
-    <div className="min-h-screen bg-[#04060c] text-white p-4 md:p-8">
+    <div className="min-h-screen bg-[#060913] text-slate-100 p-4 md:p-8">
       {/* ── HEADER DE SECCIÓN ── */}
       <div className="max-w-7xl mx-auto mb-8">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-[#0d1117] via-[#111622] to-[#0d1117] border border-white/10 rounded-2xl p-6 shadow-2xl relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-[#0d1527] via-[#091122] to-[#060913] border border-amber-500/20 rounded-3xl p-6 shadow-2xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
           <div className="relative z-10 flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-600 to-cyan-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
-              <Megaphone className="w-7 h-7 text-white" />
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-400 via-amber-500 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/20 text-slate-950 font-black">
+              <Megaphone className="w-7 h-7 text-slate-950" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight">Cargar Campaña Remarketing</h1>
-                <span className="bg-indigo-500/20 text-indigo-300 text-xs px-2.5 py-1 rounded-full border border-indigo-500/30 font-semibold">
-                  Scraping Outbound
+                <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight">Cargar Campaña Remarketing</h1>
+                <span className="bg-amber-500/10 text-amber-300 text-xs px-3 py-1 rounded-full border border-amber-500/30 font-extrabold uppercase tracking-wider">
+                  Outbound WhatsApp
                 </span>
               </div>
-              <p className="text-white/50 text-sm mt-1">
+              <p className="text-slate-400 text-xs mt-1">
                 Envía ofertas y mensajes masivos a números de clientes extraídos. Toda respuesta entra al Inbox en tiempo real.
               </p>
             </div>

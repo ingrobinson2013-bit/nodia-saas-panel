@@ -1,26 +1,88 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --background: #060913;
+  --foreground: #f8fafc;
+  --gold-primary: #d4af37;
+  --gold-hover: #e5c158;
+  --cyan-sync: #06b6d4;
+  --navy-deep: #0a0f1d;
+  --navy-card: #0e1726;
+  --magenta-ai: #ec4899;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: #060913;
+  color: #f8fafc;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  overflow-x: hidden;
 }
+
+/* Custom Scrollbar World-Class */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(6, 9, 19, 0.8);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(212, 175, 55, 0.2);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(212, 175, 55, 0.4);
+}
+
+/* Glassmorphism & Glow Effects */
+.gold-glass {
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.08) 0%, rgba(14, 23, 38, 0.6) 100%);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+.cyan-glass {
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.08) 0%, rgba(14, 23, 38, 0.6) 100%);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(6, 182, 212, 0.2);
+}
+
+.card-luxury {
+  background: linear-gradient(180deg, #0e1726 0%, #0a0f1d 100%);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5);
+}
+
+.card-luxury-gold {
+  background: linear-gradient(180deg, #121d30 0%, #0a0f1d 100%);
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  box-shadow: 0 10px 30px -10px rgba(212, 175, 55, 0.1);
+}
+
+/* Metallic Text & Border Glows */
+.gold-text-gradient {
+  background: linear-gradient(135deg, #fff3c4 0%, #d4af37 50%, #aa820a 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.cyan-text-gradient {
+  background: linear-gradient(135deg, #e0f2fe 0%, #06b6d4 50%, #0284c7 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Micro Animations */
+@keyframes pulse-subtle {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.85; transform: scale(1.02); }
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 3s ease-in-out infinite;
+}
+

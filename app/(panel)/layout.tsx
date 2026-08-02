@@ -6,16 +6,16 @@ import Sidebar from "@/components/Sidebar";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = { 
-  title: "BeautySync Pro+",
-  description: "Panel de gestión WhatsApp Business AI"
+  title: "BeautySync Pro — Ecosystem Inteligente",
+  description: "Panel CRM Multi-Tenant & Agente IA para Barberías y Salones"
 };
 
 export default function PanelLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className={`${inter.className} flex h-screen bg-[#0f1117] overflow-hidden`}>
+    <div className={`${inter.className} flex h-screen bg-[#060913] text-slate-100 overflow-hidden antialiased`}>
       <Sidebar />
-      {/* On mobile: add bottom padding so content isn't hidden behind bottom nav */}
-      <main className="flex-1 overflow-y-auto pb-[60px] md:pb-0">{children}</main>
+      <main className="flex-1 overflow-y-auto pb-[64px] md:pb-0 relative">{children}</main>
     </div>
   );
 }
+

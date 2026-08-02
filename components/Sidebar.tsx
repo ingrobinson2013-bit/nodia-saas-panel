@@ -5,16 +5,15 @@ import { useEffect, useState } from "react";
 import { getTenantId } from "@/lib/tenant";
 import { supabase } from "@/lib/supabase";
 import {
-  MessageCircle, Settings, Users, BarChart3,
-  Megaphone, LogOut
+  MessageSquare, BarChart3, Users, Megaphone, Settings, LogOut, Sparkles
 } from "lucide-react";
 
 const navItems = [
-  { href: "/inbox",     icon: MessageCircle, label: "Inbox" },
-  { href: "/dashboard", icon: BarChart3,     label: "Reportes" },
-  { href: "/contactos", icon: Users,         label: "Contactos" },
-  { href: "/campanas",  icon: Megaphone,     label: "Campañas" },
-  { href: "/config",    icon: Settings,      label: "Config" },
+  { href: "/inbox",     icon: MessageSquare, label: "Inbox Chat" },
+  { href: "/dashboard", icon: BarChart3,     label: "Reportes & IA" },
+  { href: "/contactos", icon: Users,         label: "CRM Contactos" },
+  { href: "/campanas",  icon: Megaphone,     label: "Campañas WhatsApp" },
+  { href: "/config",    icon: Settings,      label: "Configuración" },
 ];
 
 export default function Sidebar() {
@@ -27,86 +26,109 @@ export default function Sidebar() {
   }, []);
 
   async function handleLogout() {
-    // 1. Cerrar sesión en Supabase Auth
     await supabase.auth.signOut();
-    // 2. Limpiar TODO el localStorage
     localStorage.removeItem('nodia_tenant_id');
     localStorage.removeItem('nodia_tenant_nombre');
     localStorage.removeItem('nodia_tenant_plan');
     localStorage.removeItem('bsp_tenant_id');
     localStorage.removeItem('bsp_tenant_nombre');
-    // 3. Limpiar sessionStorage (config lock)
     sessionStorage.removeItem('bsp_config_unlocked');
-    // 4. Redirigir al login
     router.push('/login');
   }
 
-  // Always append ?tenant= to every nav link so the tenant survives navigation
   const withTenant = (href: string) =>
     tenantId ? `${href}?tenant=${tenantId}` : href;
 
   return (
     <>
-      {/* ── DESKTOP sidebar (≥ md) ── */}
-      <aside className="hidden md:flex w-[220px] bg-[#0a0d14] border-r border-white/5 flex-col h-screen sticky top-0">
-        {/* Logo */}
-        <div className="p-5 border-b border-white/5">
+      {/* ── DESKTOP SIDEBAR (≥ md) ── */}
+      <aside className="hidden md:flex w-[240px] bg-[#070a14] border-r border-amber-500/10 flex-col h-screen sticky top-0 z-30 select-none shadow-2xl">
+        {/* Brand Header */}
+        <div className="p-4 border-b border-amber-500/10 relative overflow-hidden bg-gradient-to-b from-[#0e172a]/60 to-[#070a14]">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 rounded-full blur-xl pointer-events-none" />
           <div className="flex items-center gap-3">
-            <img src="/logo.jpg" alt="NODIA" className="w-9 h-9 rounded-xl object-cover border border-white/10" />
-            <div>
-              <p className="font-extrabold text-white text-[15px] leading-none">BeautySync Pro</p>
-              <p className="text-[11px] text-white/30 font-medium mt-0.5">Chat</p>
+            <div className="relative shrink-0">
+              <img
+                src="/logo.jpg"
+                alt="BeautySync Pro"
+                className="w-10 h-10 rounded-xl object-cover border border-amber-500/40 shadow-lg shadow-amber-500/10"
+              />
+              <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-400 border-2 border-[#070a14] rounded-full" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5">
+                <span className="font-extrabold text-white text-[14px] tracking-tight truncate leading-none">
+                  BeautySync
+                </span>
+                <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-gradient-to-r from-amber-500 to-amber-600 text-black tracking-wider shadow-sm shrink-0">
+                  PRO
+                </span>
+              </div>
+              <p className="text-[10px] text-cyan-400 font-semibold tracking-wider uppercase mt-1 flex items-center gap-1">
+                <Sparkles size={9} /> Ecosystem IA
+              </p>
             </div>
           </div>
         </div>
 
-        {/* Nav */}
-        <nav className="flex-1 p-3 space-y-1">
+        {/* Navigation Items */}
+        <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+          <p className="px-3 text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">
+            Panel Principal
+          </p>
           {navItems.map(({ href, icon: Icon, label }) => {
             const active = path.startsWith(href);
             return (
               <Link
                 key={href}
                 href={withTenant(href)}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 group relative ${
                   active
-                    ? "bg-white/10 text-white"
-                    : "text-white/40 hover:text-white hover:bg-white/5"
+                    ? "bg-gradient-to-r from-amber-500/20 via-amber-500/10 to-transparent text-amber-300 border border-amber-500/30 shadow-lg shadow-amber-500/5"
+                    : "text-slate-400 hover:text-slate-200 hover:bg-white/[0.04] border border-transparent"
                 }`}
               >
-                <Icon size={17} />
-                {label}
+                <Icon
+                  size={18}
+                  className={`transition-colors shrink-0 ${
+                    active ? "text-amber-400" : "text-slate-400 group-hover:text-amber-300"
+                  }`}
+                />
+                <span className="truncate">{label}</span>
+                {active && (
+                  <div className="absolute left-0 top-2 bottom-2 w-1 bg-amber-400 rounded-r-full shadow-md shadow-amber-400/50" />
+                )}
               </Link>
             );
           })}
         </nav>
 
-        {/* Footer */}
-        <div className="p-3 border-t border-white/5">
+        {/* User / Logout Footer */}
+        <div className="p-3 border-t border-white/5 bg-[#0a0f1d]/50">
           <button
             onClick={handleLogout}
-            className="flex items-center gap-3 px-3 py-2.5 w-full rounded-xl text-sm font-semibold text-white/30 hover:text-rose-400 hover:bg-rose-500/10 transition-all"
+            className="flex items-center gap-3 px-3.5 py-2.5 w-full rounded-xl text-xs font-bold text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 border border-transparent hover:border-rose-500/20 transition-all duration-200"
           >
-            <LogOut size={17} />
-            Cerrar sesión
+            <LogOut size={16} />
+            <span>Cerrar sesión</span>
           </button>
         </div>
       </aside>
 
-      {/* ── MOBILE bottom nav (< md) ── */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#0a0d14]/95 backdrop-blur-md border-t border-white/10 flex items-center justify-around px-2 py-2">
+      {/* ── MOBILE BOTTOM BAR (< md) ── */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#070a14]/95 backdrop-blur-xl border-t border-amber-500/20 flex items-center justify-around px-2 py-2 shadow-2xl">
         {navItems.map(({ href, icon: Icon, label }) => {
           const active = path.startsWith(href);
           return (
             <Link
               key={href}
               href={withTenant(href)}
-              className={`flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl transition-all ${
-                active ? "text-cyan-400" : "text-white/30"
+              className={`flex flex-col items-center gap-1 px-2.5 py-1.5 rounded-xl transition-all ${
+                active ? "text-amber-400" : "text-slate-400"
               }`}
             >
-              <Icon size={20} />
-              <span className="text-[10px] font-semibold">{label}</span>
+              <Icon size={19} className={active ? "text-amber-400" : "text-slate-400"} />
+              <span className="text-[9.5px] font-bold tracking-tight">{label.split(" ")[0]}</span>
             </Link>
           );
         })}
@@ -114,3 +136,4 @@ export default function Sidebar() {
     </>
   );
 }
+
