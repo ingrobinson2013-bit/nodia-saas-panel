@@ -121,16 +121,30 @@ export async function POST(req: NextRequest) {
           let components: any[] = [];
 
           // 1. Cabecera (Imagen / Header)
-          const headerLink = template_header_image_link || (cleanTplName === "contacto_inicial_beautysyncpro" ? "https://beautysyncprochat.appteso.cloud/BeautySync_History_Meta.jpg" : undefined);
-          if (headerLink) {
+          // Media ID permanente subido directamente a los servidores de WhatsApp
+          // Esto evita errores 403 de cualquier URL externa (Cloudflare, hotlink, etc.)
+          const BEAUTYSYNC_HEADER_MEDIA_ID = "1514709553317181";
+
+          const headerLink = template_header_image_link;
+          const headerMediaId = cleanTplName === "contacto_inicial_beautysyncpro" ? BEAUTYSYNC_HEADER_MEDIA_ID : undefined;
+
+          if (headerMediaId) {
             components.push({
               type: "header",
               parameters: [
                 {
                   type: "image",
-                  image: {
-                    link: headerLink,
-                  },
+                  image: { id: headerMediaId },
+                },
+              ],
+            });
+          } else if (headerLink) {
+            components.push({
+              type: "header",
+              parameters: [
+                {
+                  type: "image",
+                  image: { link: headerLink },
                 },
               ],
             });
