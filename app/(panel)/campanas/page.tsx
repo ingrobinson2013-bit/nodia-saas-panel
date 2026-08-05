@@ -89,6 +89,10 @@ export default function CampanasPage() {
         if (approved.length > 0) {
           setTemplateName(approved[0].name);
         }
+        if (data.tenant_name) {
+          setTenantNombre(data.tenant_name);
+          localStorage.setItem("nodia_tenant_nombre", data.tenant_name);
+        }
       } else {
         setAvailableTemplates([]);
         setTemplatesError(true);
@@ -316,12 +320,14 @@ export default function CampanasPage() {
       for (let b = 0; b < batches.length; b++) {
         const batch = batches[b];
 
+        const selectedTpl = availableTemplates.find((t: any) => t.name === templateName);
         const payload = {
           tenant_id: tenantId,
           campaign_name: campaignNameFinal,
           message_type: messageType,
           message: messageText,
           template_name: templateName || undefined,
+          template_language: selectedTpl?.language || undefined,
           contacts: batch.map((c) => ({ phone: c.phone, name: c.name })),
           delay_seconds: delaySeconds,
           // Solo registrar campaña en el último lote para no duplicar
@@ -744,23 +750,71 @@ export default function CampanasPage() {
               <div className="p-4 min-h-[280px] bg-[radial-gradient(#111b21_1px,transparent_1px)] [background-size:12px_12px] flex flex-col justify-end">
                 {/* Bubble message */}
                 <div className="bg-[#005c4b] text-white p-2.5 rounded-2xl rounded-tr-none text-xs shadow-md space-y-2 relative max-w-[95%] self-end">
-                  {messageType === "template" && templateName === "contacto_inicial_beautysyncpro" ? (
-                    <>
-                      <img
-                        src="https://blog.tesoconsulting.co/wp-content/uploads/2026/05/BeautySync_History_Meta.webp"
-                        alt="Header"
-                        className="w-full h-28 object-cover rounded-xl border border-white/10"
-                      />
-                      <p className="leading-snug text-[11px] whitespace-pre-wrap">
-                        Hola {parsedContacts[0]?.name || "Robinson"} 👋<br/><br/>
-                        Te escribimos de TESO Consulting con una novedad importante.<br/><br/>
-                        Lanzamos <strong>BeautySync Pro</strong>: el primer software para barberías y salones que se subsidia con tus compras de insumos.<br/><br/>
-                        ✅ Agenda inteligente 24/7<br/>
-                        ✅ Sitio Web y App de Reservas<br/>
-                        ✅ Profesionales Ilimitados<br/><br/>
-                        ¿Te gustaría conocer cómo funciona?
-                      </p>
-                    </>
+                  {messageType === "template" && templateName ? (
+                    (() => {
+                      const selectedTpl = availableTemplates.find((t: any) => t.name === templateName);
+                      if (selectedTpl) {
+                        const bodyComp = selectedTpl.components?.find((c: any) => c.type === "BODY" || c.type === "body");
+                        const headerComp = selectedTpl.components?.find((c: any) => c.type === "HEADER" || c.type === "header");
+                        const footerComp = selectedTpl.components?.find((c: any) => c.type === "FOOTER" || c.type === "footer");
+                        const buttonsComp = selectedTpl.components?.find((c: any) => c.type === "BUTTONS" || c.type === "buttons");
+
+                        let imageUrl = "";
+                        if (headerComp?.format === "IMAGE" || headerComp?.format === "image") {
+                          if (templateName === "contacto_inicial_beautysyncpro") {
+                            imageUrl = "https://blog.tesoconsulting.co/wp-content/uploads/2026/05/BeautySync_History_Meta.webp";
+                          } else if (headerComp.example?.header_handle?.[0]) {
+                            imageUrl = headerComp.example.header_handle[0];
+                          }
+                        }
+
+                        let text = bodyComp?.text || "";
+                        const firstContactName = parsedContacts[0]?.name || "Robinson";
+                        text = text
+                          .replace("{{nombre}}", firstContactName)
+                          .replace("{{1}}", firstContactName)
+                          .replace("{nombre}", firstContactName)
+                          .replace("{negocio}", tenantNombre || "Tu Negocio");
+
+                        return (
+                          <>
+                            {imageUrl && (
+                              <img
+                                src={imageUrl}
+                                alt="Header Template"
+                                className="w-full h-28 object-cover rounded-xl border border-white/10"
+                              />
+                            )}
+                            {headerComp?.format === "TEXT" && headerComp.text && (
+                              <p className="font-bold text-[13px] border-b border-white/5 pb-1 mb-1">{headerComp.text}</p>
+                            )}
+                            <p className="leading-snug text-[11px] whitespace-pre-wrap">{text}</p>
+                            {footerComp?.text && (
+                              <p className="text-[9px] text-emerald-200/50 border-t border-white/5 pt-1 mt-1 font-mono uppercase tracking-wider">
+                                {footerComp.text}
+                              </p>
+                            )}
+                            {buttonsComp?.buttons && buttonsComp.buttons.length > 0 && (
+                              <div className="mt-2 space-y-1">
+                                {buttonsComp.buttons.map((btn: any, idx: number) => (
+                                  <div
+                                    key={idx}
+                                    className="w-full py-1.5 bg-[#202c33]/80 hover:bg-[#202c33] text-emerald-400 font-bold text-center rounded-xl text-[10px] border border-white/5 shadow transition-all"
+                                  >
+                                    {btn.text}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </>
+                        );
+                      }
+                      return (
+                        <p className="leading-relaxed whitespace-pre-wrap text-white/50 text-[11px]">
+                          Selecciona una plantilla para ver su previsualización
+                        </p>
+                      );
+                    })()
                   ) : (
                     <p className="leading-relaxed whitespace-pre-wrap">
                       {messageText

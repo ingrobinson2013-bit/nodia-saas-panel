@@ -24,7 +24,7 @@ export async function GET(
 
     // 1. Obtener waba_id y token desde Supabase con service key (server-side)
     const tenantRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/tenants?tenant_id=eq.${tenant_id}&select=waba_id,wa_access_token`,
+      `${SUPABASE_URL}/rest/v1/tenants?tenant_id=eq.${tenant_id}&select=nombre,waba_id,wa_access_token`,
       {
         headers: {
           apikey: supabaseKey,
@@ -37,6 +37,7 @@ export async function GET(
     const tenant = tenants?.[0];
     const wabaId = tenant?.waba_id;
     const accessToken = tenant?.wa_access_token;
+    const tenantName = tenant?.nombre;
 
     if (!wabaId || !accessToken) {
       return NextResponse.json(
@@ -47,14 +48,14 @@ export async function GET(
 
     // 2. Llamar a Meta Graph API (server-side — token nunca expuesto al cliente)
     const metaRes = await fetch(
-      `${GRAPH_URL}/${wabaId}/message_templates?fields=id,name,status,language,category&limit=50`,
+      `${GRAPH_URL}/${wabaId}/message_templates?fields=id,name,status,language,category,components&limit=50`,
       { headers: { Authorization: `Bearer ${accessToken}` } }
     );
 
     if (!metaRes.ok) {
       const err = await metaRes.json();
       return NextResponse.json(
-        { templates: [], error: err?.error?.message || "Error Meta API" },
+        { templates: [], error: err?.error?.message || "Error Meta API", tenant_name: tenantName },
         { status: 200 }
       );
     }
@@ -62,7 +63,7 @@ export async function GET(
     const metaData = await metaRes.json();
     const templates = metaData.data || [];
 
-    return NextResponse.json({ templates, total: templates.length });
+    return NextResponse.json({ templates, total: templates.length, tenant_name: tenantName });
   } catch (e: any) {
     return NextResponse.json(
       { templates: [], error: e?.message || "Error interno" },
