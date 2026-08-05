@@ -121,7 +121,7 @@ export async function POST(req: NextRequest) {
           let components: any[] = [];
 
           // 1. Cabecera (Imagen / Header)
-          const headerLink = template_header_image_link || (cleanTplName === "contacto_inicial_beautysyncpro" ? "https://blog.tesoconsulting.co/wp-content/uploads/2026/05/BeautySync_History_Meta.png" : undefined);
+          const headerLink = template_header_image_link || (cleanTplName === "contacto_inicial_beautysyncpro" ? "https://beautysyncprochat.appteso.cloud/BeautySync_History_Meta.jpg" : undefined);
           if (headerLink) {
             components.push({
               type: "header",

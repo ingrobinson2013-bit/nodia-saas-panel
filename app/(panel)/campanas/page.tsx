@@ -768,7 +768,7 @@ export default function CampanasPage() {
                         let imageUrl = "";
                         if (headerComp?.format === "IMAGE" || headerComp?.format === "image") {
                           if (templateName === "contacto_inicial_beautysyncpro") {
-                            imageUrl = "https://blog.tesoconsulting.co/wp-content/uploads/2026/05/BeautySync_History_Meta.png";
+                            imageUrl = "https://beautysyncprochat.appteso.cloud/BeautySync_History_Meta.jpg";
                           } else if (headerComp.example?.header_handle?.[0]) {
                             imageUrl = headerComp.example.header_handle[0];
                           }
