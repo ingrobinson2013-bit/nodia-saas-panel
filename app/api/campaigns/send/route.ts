@@ -37,13 +37,14 @@ export async function POST(req: NextRequest) {
     message = "",
     template_name,
     template_language = "es",
-    template_header_image_link, // <-- Recibir link dinámico de la cabecera
+    template_header_image_link,  // link externo (fallback)
+    template_header_media_id,    // media_id permanente subido a WhatsApp (prioridad)
     contacts = [],
     delay_seconds = 1.0,
-    save_record = true,       // false en lotes intermedios
-    total_override,           // total real de toda la campaña (para el registro)
-    sent_override = 0,        // acumulado de lotes anteriores
-    failed_override = 0,      // acumulado de lotes anteriores
+    save_record = true,
+    total_override,
+    sent_override = 0,
+    failed_override = 0,
   } = body;
 
   if (!tenant_id) {
@@ -121,32 +122,21 @@ export async function POST(req: NextRequest) {
           let components: any[] = [];
 
           // 1. Cabecera (Imagen / Header)
-          // Media ID permanente subido directamente a los servidores de WhatsApp
-          // Esto evita errores 403 de cualquier URL externa (Cloudflare, hotlink, etc.)
-          const BEAUTYSYNC_HEADER_MEDIA_ID = "1514709553317181";
+          // Prioridad: media_id subido por el usuario > media_id hardcoded > link externo
+          const BEAUTYSYNC_DEFAULT_MEDIA_ID = "1514709553317181";
+          const resolvedMediaId =
+            template_header_media_id ||
+            (cleanTplName === "contacto_inicial_beautysyncpro" ? BEAUTYSYNC_DEFAULT_MEDIA_ID : undefined);
 
-          const headerLink = template_header_image_link;
-          const headerMediaId = cleanTplName === "contacto_inicial_beautysyncpro" ? BEAUTYSYNC_HEADER_MEDIA_ID : undefined;
-
-          if (headerMediaId) {
+          if (resolvedMediaId) {
             components.push({
               type: "header",
-              parameters: [
-                {
-                  type: "image",
-                  image: { id: headerMediaId },
-                },
-              ],
+              parameters: [{ type: "image", image: { id: resolvedMediaId } }],
             });
-          } else if (headerLink) {
+          } else if (template_header_image_link) {
             components.push({
               type: "header",
-              parameters: [
-                {
-                  type: "image",
-                  image: { link: headerLink },
-                },
-              ],
+              parameters: [{ type: "image", image: { link: template_header_image_link } }],
             });
           }
 

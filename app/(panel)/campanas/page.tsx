@@ -53,6 +53,12 @@ export default function CampanasPage() {
   const [templatesError, setTemplatesError] = useState<boolean>(false);
   const [delaySeconds, setDelaySeconds] = useState<number>(1.0);
 
+  // Image uploader state
+  const [headerMediaId, setHeaderMediaId] = useState<string>("");
+  const [headerImagePreview, setHeaderImagePreview] = useState<string>("");
+  const [uploadingImage, setUploadingImage] = useState<boolean>(false);
+  const [uploadImageError, setUploadImageError] = useState<string>("");
+
   // Parsed contacts state
   const [parsedContacts, setParsedContacts] = useState<ContactParsed[]>([]);
   
@@ -74,6 +80,38 @@ export default function CampanasPage() {
       fetchCampaignHistory(tid);
     }
   }, []);
+
+  const handleImageUpload = async (file: File) => {
+    if (!tenantId) return;
+    setUploadingImage(true);
+    setUploadImageError("");
+    setHeaderMediaId("");
+    setHeaderImagePreview("");
+    try {
+      const preview = URL.createObjectURL(file);
+      setHeaderImagePreview(preview);
+
+      const fd = new FormData();
+      fd.append("file", file);
+
+      const res = await fetch(`/api/media/upload/${tenantId}`, {
+        method: "POST",
+        body: fd,
+      });
+      const data = await res.json();
+      if (!res.ok || !data.media_id) {
+        setUploadImageError(data.error || "Error al subir imagen");
+        setHeaderImagePreview("");
+        return;
+      }
+      setHeaderMediaId(data.media_id);
+    } catch (err: any) {
+      setUploadImageError(err.message || "Error de red");
+      setHeaderImagePreview("");
+    } finally {
+      setUploadingImage(false);
+    }
+  };
 
   // Fetch approved WhatsApp templates via API Route interna de Next.js (proxy seguro)
   // El token de Meta nunca se expone al cliente
@@ -334,6 +372,7 @@ export default function CampanasPage() {
           template_name: templateName || undefined,
           template_language: selectedTpl?.language || undefined,
           template_header_image_link: headerImageLink || undefined,
+          template_header_media_id: headerMediaId || undefined,
           contacts: batch.map((c) => ({ phone: c.phone, name: c.name })),
           delay_seconds: delaySeconds,
           // Solo registrar campaña en el último lote para no duplicar
@@ -641,6 +680,73 @@ export default function CampanasPage() {
                         ✨ <strong>Plantilla seleccionada:</strong>{" "}
                         {availableTemplates.find((t: any) => t.name === templateName)?.category || ""}{" "}
                         &mdash; Se enviará directamente al destinatario.
+                      </div>
+                    )}
+
+                    {/* Uploader de imagen de cabecera */}
+                    {templateName && availableTemplates.find((t: any) => t.name === templateName)?.components?.some((c: any) => (c.type === "HEADER" || c.type === "header") && (c.format === "IMAGE" || c.format === "image")) && (
+                      <div className="mt-4 p-4 bg-indigo-500/10 border border-indigo-500/30 rounded-xl space-y-3">
+                        <p className="text-xs font-semibold text-indigo-300 uppercase tracking-wider flex items-center gap-2">
+                          <Upload size={13} /> Imagen de Cabecera de la Plantilla
+                        </p>
+
+                        {headerImagePreview ? (
+                          <div className="relative">
+                            <img
+                              src={headerImagePreview}
+                              alt="Vista previa"
+                              className="w-full max-h-40 object-cover rounded-lg border border-white/10"
+                            />
+                            {headerMediaId && (
+                              <div className="mt-2 flex items-center gap-1.5 text-xs text-emerald-400">
+                                <CheckCircle2 size={13} />
+                                <span>Imagen subida a WhatsApp — Media ID: <code className="font-mono text-emerald-300">{headerMediaId}</code></span>
+                              </div>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => { setHeaderMediaId(""); setHeaderImagePreview(""); }}
+                              className="mt-2 text-xs text-rose-400 hover:text-rose-300 underline transition-colors"
+                            >
+                              × Cambiar imagen
+                            </button>
+                          </div>
+                        ) : (
+                          <label className={`flex flex-col items-center justify-center gap-2 border-2 border-dashed rounded-xl p-5 cursor-pointer transition-all ${
+                            uploadingImage
+                              ? "border-indigo-500/50 bg-indigo-500/5 cursor-wait"
+                              : "border-white/20 hover:border-indigo-400/50 hover:bg-indigo-500/5"
+                          }`}>
+                            <input
+                              type="file"
+                              accept="image/jpeg,image/jpg,image/png"
+                              className="hidden"
+                              disabled={uploadingImage}
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) handleImageUpload(file);
+                              }}
+                            />
+                            {uploadingImage ? (
+                              <>
+                                <RefreshCw size={20} className="text-indigo-400 animate-spin" />
+                                <span className="text-xs text-indigo-300">Subiendo imagen a WhatsApp...</span>
+                              </>
+                            ) : (
+                              <>
+                                <Upload size={20} className="text-white/30" />
+                                <span className="text-xs text-white/60">Haz clic para subir JPG o PNG</span>
+                                <span className="text-[11px] text-white/30">La imagen se subirá directamente a los servidores de WhatsApp</span>
+                              </>
+                            )}
+                          </label>
+                        )}
+
+                        {uploadImageError && (
+                          <p className="text-xs text-rose-400 flex items-center gap-1.5">
+                            <AlertCircle size={13} /> {uploadImageError}
+                          </p>
+                        )}
                       </div>
                     )}
                   </>
