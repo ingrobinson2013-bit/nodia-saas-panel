@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
 
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY!;
 const GRAPH_URL = "https://graph.facebook.com/v21.0";
 
 export async function POST(
@@ -10,24 +11,27 @@ export async function POST(
   try {
     const { tenant_id } = await params;
 
-    // Crear cliente Supabase de forma lazy (dentro del handler, no a nivel de módulo)
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    const supabaseKey = SUPABASE_SERVICE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+
+    // 1. Obtener credenciales del tenant via REST (mismo patrón que /api/templates)
+    const tenantRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/tenants?tenant_id=eq.${tenant_id}&select=wa_phone_id,wa_access_token`,
+      {
+        headers: {
+          apikey: supabaseKey,
+          Authorization: `Bearer ${supabaseKey}`,
+        },
+      }
     );
 
-    // 1. Obtener credenciales del tenant
-    const { data: tenants, error } = await supabase
-      .from("tenants")
-      .select("wa_phone_id, wa_access_token")
-      .eq("tenant_id", tenant_id)
-      .single();
+    const tenants = await tenantRes.json();
+    const tenant = tenants?.[0];
 
-    if (error || !tenants) {
-      return NextResponse.json({ error: "Tenant no encontrado" }, { status: 404 });
+    if (!tenant?.wa_phone_id || !tenant?.wa_access_token) {
+      return NextResponse.json({ error: "Credenciales WhatsApp no encontradas para este tenant" }, { status: 404 });
     }
 
-    const { wa_phone_id, wa_access_token } = tenants;
+    const { wa_phone_id, wa_access_token } = tenant;
 
     // 2. Leer el archivo del body (multipart/form-data)
     const formData = await req.formData();
