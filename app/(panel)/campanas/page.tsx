@@ -321,6 +321,11 @@ export default function CampanasPage() {
         const batch = batches[b];
 
         const selectedTpl = availableTemplates.find((t: any) => t.name === templateName);
+        const headerComp = selectedTpl?.components?.find((c: any) => c.type === "HEADER" || c.type === "header");
+        const headerImageLink = (headerComp?.format === "IMAGE" || headerComp?.format === "image")
+          ? headerComp.example?.header_handle?.[0]
+          : undefined;
+
         const payload = {
           tenant_id: tenantId,
           campaign_name: campaignNameFinal,
@@ -328,6 +333,7 @@ export default function CampanasPage() {
           message: messageText,
           template_name: templateName || undefined,
           template_language: selectedTpl?.language || undefined,
+          template_header_image_link: headerImageLink || undefined,
           contacts: batch.map((c) => ({ phone: c.phone, name: c.name })),
           delay_seconds: delaySeconds,
           // Solo registrar campaña en el último lote para no duplicar

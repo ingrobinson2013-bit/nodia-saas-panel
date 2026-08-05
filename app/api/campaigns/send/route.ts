@@ -37,6 +37,7 @@ export async function POST(req: NextRequest) {
     message = "",
     template_name,
     template_language = "es",
+    template_header_image_link, // <-- Recibir link dinámico de la cabecera
     contacts = [],
     delay_seconds = 1.0,
     save_record = true,       // false en lotes intermedios
@@ -119,29 +120,28 @@ export async function POST(req: NextRequest) {
           // Componentes según la plantilla
           let components: any[] = [];
 
-          if (cleanTplName === "contacto_inicial_beautysyncpro") {
-            // Usar el header_handle de la plantilla aprobada en Meta
-            // Este es el ID de la imagen almacenada en servidores de WhatsApp
-            components = [
-              {
-                type: "header",
-                parameters: [
-                  {
-                    type: "image",
-                    image: {
-                      link: "https://blog.tesoconsulting.co/wp-content/uploads/2026/05/BeautySync_History_Meta.png",
-                    },
+          // 1. Cabecera (Imagen / Header)
+          const headerLink = template_header_image_link || (cleanTplName === "contacto_inicial_beautysyncpro" ? "https://blog.tesoconsulting.co/wp-content/uploads/2026/05/BeautySync_History_Meta.png" : undefined);
+          if (headerLink) {
+            components.push({
+              type: "header",
+              parameters: [
+                {
+                  type: "image",
+                  image: {
+                    link: headerLink,
                   },
-                ],
-              },
-              {
-                type: "body",
-                parameters: [{ type: "text", parameter_name: "nombre", text: contactName }],
-              },
-            ];
-          } else if (cleanTplName === "retoma_pos_electronico") {
-            // Sin header image dinámico — Meta usa la imagen de la plantilla aprobada
-            components = [];
+                },
+              ],
+            });
+          }
+
+          // 2. Cuerpo (Body)
+          if (cleanTplName === "contacto_inicial_beautysyncpro") {
+            components.push({
+              type: "body",
+              parameters: [{ type: "text", parameter_name: "nombre", text: contactName }],
+            });
           }
 
           waPayload = {
