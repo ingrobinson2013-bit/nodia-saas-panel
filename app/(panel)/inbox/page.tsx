@@ -8,7 +8,7 @@ import {
   Sparkles, Phone, Shield, UserCheck, CalendarCheck, CheckCheck,
   Flame, DollarSign, FileText, ChevronRight, FileCheck, Layers,
   ExternalLink, Tag, MapPin, UserPlus, CheckCircle2, ChevronDown, ChevronUp, AlertCircle,
-  Scissors, ArrowLeft, Info
+  Scissors, ArrowLeft, Info, Copy, Check
 } from "lucide-react";
 import { getTenantId } from "@/lib/tenant";
 
@@ -23,7 +23,16 @@ export default function InboxPage() {
   const [showAiSummary, setShowAiSummary] = useState(true);
   const [activeRightTab, setActiveRightTab] = useState<"crm" | "timeline">("crm");
   const [mobileView, setMobileView] = useState<"list" | "chat" | "crm">("list");
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  const copyToClipboard = (text: string, index: number) => {
+    if (!text) return;
+    navigator.clipboard.writeText(text);
+    setCopiedIndex(index);
+    setTimeout(() => setCopiedIndex(null), 2000);
+  };
+
 
   // Load chat sessions from Supabase
   const fetchSessions = async (tid?: string) => {
@@ -178,14 +187,15 @@ export default function InboxPage() {
   }).length;
 
   return (
-    <div className="flex h-[100dvh] bg-[#07090e] text-white font-sans antialiased overflow-hidden select-none">
+    <div className="flex h-[100dvh] bg-[#07090e] text-white font-sans antialiased overflow-hidden">
 
       {/* ══════════════════════════════════════
           COLUMNA 1: LISTA DE CONVERSACIONES (RESPONSIVE)
       ══════════════════════════════════════ */}
       <div className={`${
         mobileView === 'list' ? 'flex' : 'hidden md:flex'
-      } w-full md:w-[340px] flex-col shrink-0 border-r border-white/5 bg-[#0a0d15] pb-16 md:pb-0`}>
+      } w-full md:w-[340px] flex-col shrink-0 border-r border-white/5 bg-[#0a0d15] pb-16 md:pb-0 select-none`}>
+
         
         {/* Dashboard Superior Salón */}
         <div className="px-4 py-3 border-b border-white/5 bg-[#0d121f]/80 backdrop-blur-md">
@@ -418,7 +428,7 @@ export default function InboxPage() {
           </div>
 
           {/* Banner de Resumen IA del Servicio de Belleza */}
-          <div className="mx-4 mt-3 bg-[#0d121f] border border-cyan-500/20 rounded-2xl p-3.5 space-y-2 shadow-lg">
+          <div className="mx-4 mt-3 bg-[#0d121f] border border-cyan-500/20 rounded-2xl p-3.5 space-y-2 shadow-lg select-text">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-cyan-400 font-extrabold text-xs">
                 <Sparkles size={14} />
@@ -466,24 +476,43 @@ export default function InboxPage() {
           </div>
 
           {/* Historial de Mensajes Stream */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-3 relative">
+          <div className="flex-1 overflow-y-auto p-4 space-y-3 relative select-text">
             {(active.history || []).map((msg, i) => {
               const isUser = msg.role === "user";
               return (
-                <div key={i} className={`flex ${isUser ? "justify-start" : "justify-end"}`}>
-                  <div className={`max-w-[85%] sm:max-w-[70%] rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed shadow-md ${
+                <div key={i} className={`flex ${isUser ? "justify-start" : "justify-end"} group relative`}>
+                  <div className={`max-w-[85%] sm:max-w-[70%] rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed shadow-md relative select-text group ${
                     isUser
                       ? "bg-[#0e1726] border border-white/10 text-slate-200 rounded-tl-none"
                       : msg.role === "agent"
                       ? "bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-semibold rounded-tr-none"
                       : "bg-gradient-to-r from-cyan-600 to-blue-600 text-white rounded-tr-none"
                   }`}>
-                    {!isUser && (
-                      <div className="flex items-center gap-1 mb-1 text-[9px] font-black uppercase tracking-wider opacity-85">
-                        {msg.role === "agent" ? "Barbero / Recepción" : "BeautySync IA"}
-                      </div>
-                    )}
-                    <p className="whitespace-pre-wrap">{msg.content}</p>
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      {!isUser ? (
+                        <div className="flex items-center gap-1 text-[9px] font-black uppercase tracking-wider opacity-85 select-none">
+                          {msg.role === "agent" ? "Barbero / Recepción" : "BeautySync IA"}
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-slate-400 select-none">
+                          {active.name || "Cliente"}
+                        </div>
+                      )}
+                      <button
+                        onClick={() => copyToClipboard(msg.content, i)}
+                        title="Copiar texto"
+                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-black/20 text-white/70 hover:text-white select-none ml-auto"
+                      >
+                        {copiedIndex === i ? (
+                          <Check size={12} className="text-emerald-300" />
+                        ) : (
+                          <Copy size={12} />
+                        )}
+                      </button>
+                    </div>
+                    <p className="whitespace-pre-wrap select-text cursor-text selection:bg-cyan-500/40 selection:text-white font-normal">
+                      {msg.content}
+                    </p>
                   </div>
                 </div>
               );
