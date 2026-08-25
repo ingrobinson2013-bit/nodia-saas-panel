@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChatSession, InternalNote } from '@/lib/types';
+import { supabase } from '@/lib/supabase';
 import {
   User,
   Phone,
@@ -10,7 +11,6 @@ import {
   MapPin,
   Tag,
   Plus,
-  ExternalLink,
   Scissors,
   X,
   AlertTriangle,
@@ -48,6 +48,7 @@ export default function CustomerCrmPanel({
   const [showRescheduleModal, setShowRescheduleModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [processingAction, setProcessingAction] = useState(false);
+  const [liveCita, setLiveCita] = useState<any>(null);
 
   const [selectedService, setSelectedService] = useState(SERVICES_LIST[0].name);
   const [selectedProfessional, setSelectedProfessional] = useState(PROFESSIONALS_LIST[0]);
@@ -65,6 +66,30 @@ export default function CustomerCrmPanel({
 
   const clientName = getClientName(session) || 'Cliente WhatsApp';
   const appointment = extractAppointmentFromHistory(session.history);
+
+  // Fetch real appointment details from citas_log
+  useEffect(() => {
+    async function loadLiveCita() {
+      if (!session) return;
+      try {
+        let query = supabase.from('citas_log').select('*');
+        if (session.cita_odoo_id) {
+          query = query.eq('odoo_event_id', session.cita_odoo_id);
+        } else {
+          query = query.eq('wa_from', session.wa_from).order('created_at', { ascending: false });
+        }
+        const { data } = await query.limit(1).maybeSingle();
+        if (data) {
+          setLiveCita(data);
+        } else {
+          setLiveCita(null);
+        }
+      } catch (e) {
+        console.error('Error fetching live appointment:', e);
+      }
+    }
+    loadLiveCita();
+  }, [session.id, session.cita_odoo_id, session.wa_from]);
 
   const handleCopyPhone = () => {
     navigator.clipboard.writeText(`+${session.wa_from}`);
@@ -137,6 +162,13 @@ export default function CustomerCrmPanel({
       setProcessingAction(false);
     }
   };
+
+  // Appointment display values
+  const displayService = liveCita?.servicio || appointment?.service || 'Corte Clásico & Barba';
+  const displayProfessional = liveCita?.profesional || appointment?.professional || 'Jose Roa';
+  const displayDate = liveCita?.fecha_cita || appointment?.date || 'Mañana 26 Ago';
+  const displayTime = liveCita?.hora_cita ? liveCita.hora_cita.slice(0, 5) : (appointment?.time || '3:00 PM');
+  const isCitaCancelada = liveCita?.estado === 'cancelada' || session.estado === 'cancelado';
 
   return (
     <aside className="w-full md:w-80 lg:w-88 bg-white md:border-l border-slate-200 flex flex-col h-full select-none flex-shrink-0 z-20">
@@ -217,16 +249,6 @@ export default function CustomerCrmPanel({
                 </button>
               </div>
 
-              <a
-                href={`https://wa.me/${session.wa_from}`}
-                target="_blank"
-                rel="noreferrer"
-                className="w-full py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[11px] font-semibold rounded-lg border border-emerald-200 flex items-center justify-center gap-1.5 transition-colors"
-              >
-                <span>Abrir en WhatsApp Web Oficial</span>
-                <ExternalLink className="w-3 h-3" />
-              </a>
-
               <div className="pt-2 border-t border-slate-200/80 space-y-1.5 text-xs">
                 <div className="flex items-center justify-between text-slate-600">
                   <span className="text-slate-400 flex items-center gap-1 text-[11px]">
@@ -238,7 +260,13 @@ export default function CustomerCrmPanel({
                   <span className="text-slate-400 flex items-center gap-1 text-[11px]">
                     <Tag className="w-3 h-3" /> Estado:
                   </span>
-                  <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                  <span
+                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                      isCitaCancelada
+                        ? 'bg-rose-100 text-rose-800 border border-rose-200'
+                        : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                    }`}
+                  >
                     {session.estado || 'Activo'}
                   </span>
                 </div>
@@ -251,18 +279,26 @@ export default function CustomerCrmPanel({
                 <div className="flex items-center gap-1.5">
                   <Calendar className="w-4 h-4 text-blue-600" />
                   <span className="text-xs font-bold text-blue-950">
-                    Cita Odoo #{session.cita_odoo_id || '2841'}
+                    Cita Odoo #{session.cita_odoo_id || liveCita?.odoo_event_id || '2518'}
                   </span>
                 </div>
-                <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-200">
-                  Confirmada
+                <span
+                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                    isCitaCancelada
+                      ? 'bg-rose-100 text-rose-800 border-rose-200'
+                      : 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                  }`}
+                >
+                  {isCitaCancelada ? 'Cancelada' : 'Confirmada'}
                 </span>
               </div>
 
               <div className="p-3.5 space-y-3 text-xs">
                 <div className="flex items-center justify-between text-[10px] font-semibold text-slate-500 border-b border-slate-100 pb-2">
                   <span className="text-slate-400">1. Solicitada</span>
-                  <span className="text-blue-600 font-bold">✓ 2. Confirmada</span>
+                  <span className={isCitaCancelada ? 'text-rose-600 font-bold' : 'text-blue-600 font-bold'}>
+                    {isCitaCancelada ? '✕ Cancelada' : '✓ 2. Confirmada'}
+                  </span>
                   <span className="text-slate-400">3. Atendida</span>
                 </div>
 
@@ -270,11 +306,9 @@ export default function CustomerCrmPanel({
                   <div className="flex items-start gap-2">
                     <Scissors className="w-4 h-4 text-slate-400 mt-0.5 flex-shrink-0" />
                     <div>
-                      <p className="font-bold text-slate-800">
-                        {appointment?.service || 'Corte Clásico & Perfilado Barba'}
-                      </p>
+                      <p className="font-bold text-slate-800">{displayService}</p>
                       <p className="text-[11px] text-slate-500">
-                        Profesional: <strong className="text-slate-700">{appointment?.professional || 'Jose Roa'}</strong>
+                        Profesional: <strong className="text-slate-700">{displayProfessional}</strong>
                       </p>
                     </div>
                   </div>
@@ -282,11 +316,9 @@ export default function CustomerCrmPanel({
                   <div className="flex items-center justify-between text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
                     <span className="flex items-center gap-1 text-slate-500 text-xs">
                       <Clock className="w-3.5 h-3.5 text-blue-600" />
-                      {appointment?.date || 'Mañana 26 Ago'} • {appointment?.time || '3:00 PM'}
+                      {displayDate} • {displayTime}
                     </span>
-                    <span className="font-bold text-emerald-700 text-xs">
-                      ${(appointment?.price || 45000).toLocaleString('es-CO')}
-                    </span>
+                    <span className="font-bold text-emerald-700 text-xs">$45.000</span>
                   </div>
                 </div>
 
@@ -303,7 +335,8 @@ export default function CustomerCrmPanel({
                   <button
                     type="button"
                     onClick={() => setShowCancelModal(true)}
-                    className="py-2 px-2 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs rounded-xl transition-colors border border-rose-200 flex items-center justify-center gap-1 cursor-pointer"
+                    disabled={isCitaCancelada}
+                    className="py-2 px-2 bg-rose-50 hover:bg-rose-100 disabled:opacity-40 disabled:cursor-not-allowed text-rose-700 font-bold text-xs rounded-xl transition-colors border border-rose-200 flex items-center justify-center gap-1 cursor-pointer"
                   >
                     <X className="w-3.5 h-3.5" />
                     <span>Cancelar</span>

@@ -165,21 +165,76 @@ export function getTagStyle(tagKey: string) {
 }
 
 export function extractAppointmentFromHistory(history?: Message[] | null) {
-  if (!history) return null;
-  for (const msg of history) {
+  if (!history || history.length === 0) return null;
+
+  let service = 'Corte Caballero Clásico';
+  let professional = 'Jose Roa';
+  let date = 'Mañana';
+  let time = '8:00 AM';
+  let price = 25000;
+  let isCancelled = false;
+  let foundAny = false;
+
+  // 1. Check in reverse (most recent message first)
+  for (let i = history.length - 1; i >= 0; i--) {
+    const msg = history[i];
+    const content = msg.content || '';
+
+    // Check JSON payload
     try {
-      const p = JSON.parse(msg.content);
+      const p = JSON.parse(content);
       if (p && (p.action === 'BOOK' || p.action === 'CREATE_APPOINTMENT' || p.service || p.date)) {
         return {
-          service: p.service || p.service_name || 'Servicio de Estética / Barbería',
-          professional: p.professional || p.staff || 'Jose Roa',
-          date: p.date || '2026-08-26',
-          time: p.time || '15:00',
-          price: p.price || 45000,
-          status: 'confirmado' as const,
+          service: p.service || p.service_name || service,
+          professional: p.professional || p.staff || professional,
+          date: p.date || date,
+          time: p.time || time,
+          price: p.price || price,
+          status: p.action === 'CANCEL' ? 'cancelada' : ('confirmada' as const),
         };
       }
+      if (p && p.action === 'CANCEL') {
+        isCancelled = true;
+      }
     } catch {}
+
+    // Check cancellation keyword in text
+    if (/cancelad[ao]|cancelaci[oó]n/i.test(content)) {
+      isCancelled = true;
+    }
+
+    // Extract Time: "a las 8:00 AM" or "a las 11:00 AM" or "a las 3:30 pm"
+    const timeMatch = content.match(/(?:a las\s+)?(\d{1,2}(?::\d{2})?\s*(?:AM|PM|a\.\s*m\.|p\.\s*m\.|am|pm))/i);
+    if (timeMatch && !foundAny) {
+      time = timeMatch[1].toUpperCase().replace(/\s+/g, ' ');
+      foundAny = true;
+    }
+
+    // Extract Date: "mañana, Miércoles 26 de agosto" or "para mañana" or "hoy"
+    const dateMatch = content.match(/(mañana[,\s]+(?:\w+)?\s*\d{1,2}\s+de\s+[a-záéíóú]+(?:\s+de\s+\d{4})?|mañana|hoy|\d{1,2}\s+de\s+[a-záéíóú]+(?:\s+de\s+\d{4})?)/i);
+    if (dateMatch) {
+      date = dateMatch[1];
+    }
+
+    // Extract Professional: "con Jose Roa" or "con Paola"
+    const proMatch = content.match(/con\s+([A-ZÁÉÍÓÚ][a-zñáéíóú]+(?:\s+[A-ZÁÉÍÓÚ][a-zñáéíóú]+)?)/i);
+    if (proMatch) {
+      professional = proMatch[1];
+    }
+
+    // Extract Service: "para un Corte Caballero Clásico" or "servicio de Limpieza Facial"
+    const srvMatch = content.match(/para (?:un|una|el servicio de)?\s*([A-ZÁÉÍÓÚa-zñáéíóú\s+]+?)(?:\.|\?|\n|con|para|a las|$)/i);
+    if (srvMatch && srvMatch[1].trim().length > 3) {
+      service = srvMatch[1].trim();
+    }
   }
-  return null;
+
+  return {
+    service,
+    professional,
+    date,
+    time,
+    price,
+    status: isCancelled ? ('cancelada' as const) : ('confirmada' as const),
+  };
 }
