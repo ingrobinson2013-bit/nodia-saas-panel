@@ -13,20 +13,48 @@ export interface Tenant {
   created_at: string;
 }
 
+export type MessageRole = 'user' | 'assistant' | 'agent' | 'system';
+
+export interface Message {
+  role: MessageRole;
+  content: string;
+  timestamp?: string;
+  isTemplate?: boolean;
+}
+
+export type InternalNote = {
+  id: string;
+  text: string;
+  author: string;
+  created_at: string;
+};
+
+export type OdooAppointmentData = {
+  id?: number | string;
+  cliente_nombre?: string;
+  telefono?: string;
+  servicio?: string;
+  profesional?: string;
+  fecha?: string;
+  hora?: string;
+  duracion?: string;
+  precio?: number;
+  estado?: 'pendiente' | 'confirmado' | 'atendido' | 'cancelado';
+  direccion?: string;
+};
+
 export interface ChatSession {
   id: string;
   tenant_id: string;
   wa_from: string;
   history: Message[];
-  estado: 'activo' | 'cerrado';
-  cita_odoo_id?: number;
+  estado: string;
+  cita_odoo_id?: number | null;
   updated_at: string;
   bot_mode: boolean;
   name?: string;
-}
-
-export interface Message {
-  role: 'user' | 'assistant' | 'agent';
-  content: string;
-  timestamp?: string;
+  tags?: string[];
+  notes?: InternalNote[];
+  agent_name?: string;
+  appointment?: OdooAppointmentData;
 }
