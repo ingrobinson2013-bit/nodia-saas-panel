@@ -24,6 +24,7 @@ interface CustomerCrmPanelProps {
   session: ChatSession;
   onAddNote?: (noteText: string) => void;
   onUpdateSession?: () => void;
+  onCloseMobile?: () => void;
 }
 
 const SERVICES_LIST = [
@@ -39,6 +40,7 @@ export default function CustomerCrmPanel({
   session,
   onAddNote,
   onUpdateSession,
+  onCloseMobile,
 }: CustomerCrmPanelProps) {
   const [activeTab, setActiveTab] = useState<'info' | 'notes'>('info');
   const [newNote, setNewNote] = useState('');
@@ -137,7 +139,21 @@ export default function CustomerCrmPanel({
   };
 
   return (
-    <aside className="w-80 lg:w-88 bg-white border-l border-slate-200 flex flex-col h-full select-none flex-shrink-0">
+    <aside className="w-full md:w-80 lg:w-88 bg-white md:border-l border-slate-200 flex flex-col h-full select-none flex-shrink-0 z-20">
+      {/* Mobile Top Bar */}
+      {onCloseMobile && (
+        <div className="md:hidden flex items-center justify-between px-4 py-2.5 border-b border-slate-200 bg-white">
+          <span className="text-xs font-bold text-slate-800">Ficha CRM de Cliente</span>
+          <button
+            onClick={onCloseMobile}
+            className="p-1 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg text-xs font-semibold flex items-center gap-1 cursor-pointer"
+          >
+            <X className="w-4 h-4" />
+            <span>Volver al Chat</span>
+          </button>
+        </div>
+      )}
+
       {/* Tab Switcher */}
       <div className="p-3 border-b border-slate-200 bg-slate-50/50">
         <div className="flex bg-slate-200/70 p-1 rounded-lg">

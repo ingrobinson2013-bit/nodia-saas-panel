@@ -1,11 +1,11 @@
 {
-  "name": "BeautySync Pro — CRM Conversacional IA",
-  "short_name": "BeautySync",
-  "description": "Sistema Inteligente de Gestión de Citas y Mensajería WhatsApp con IA para Barberías y Salones de Belleza",
+  "name": "BeautySync Pro — NODIA Chat",
+  "short_name": "NODIA Chat",
+  "description": "Sistema Inteligente de Gestión de Citas Odoo y Mensajería WhatsApp con IA para Barberías y Salones de Belleza",
   "start_url": "/inbox",
   "display": "standalone",
-  "background_color": "#07090e",
-  "theme_color": "#07090e",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
   "orientation": "portrait",
   "scope": "/",
   "icons": [

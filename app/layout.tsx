@@ -5,7 +5,7 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const viewport: Viewport = {
-  themeColor: "#07090e",
+  themeColor: "#ffffff",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -13,13 +13,13 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "BeautySync Pro — CRM Conversacional IA",
+  title: "NODIA Chat — BeautySync Pro",
   description: "Sistema Inteligente de Gestión de Citas y Mensajería WhatsApp con IA para Barberías y Salones de Belleza",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "black-translucent",
-    title: "BeautySync",
+    statusBarStyle: "default",
+    title: "NODIA Chat",
   },
   formatDetection: {
     telephone: true,
@@ -32,17 +32,18 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es" className="dark">
+    <html lang="es">
       <head>
         <link rel="manifest" href="/manifest.json" />
         <link rel="apple-touch-icon" href="/logo.jpg" />
+        <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="theme-color" content="#ffffff" />
       </head>
-      <body className={`${inter.className} bg-[#07090e] text-white antialiased selection:bg-amber-400 selection:text-slate-950`}>
+      <body className={`${inter.className} bg-white text-slate-900 antialiased`}>
         {children}
       </body>
     </html>
   );
 }
-

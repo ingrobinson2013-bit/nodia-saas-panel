@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { ChatSession } from '@/lib/types';
 import { Search, Filter, MessageSquare, Clock, Check } from 'lucide-react';
 import {
@@ -28,6 +28,27 @@ export default function ConversationList({
 }: ConversationListProps) {
   const [search, setSearch] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterType>('todos');
+  const [readSessionIds, setReadSessionIds] = useState<Set<string>>(new Set());
+
+  // Mark currently active session as read
+  useEffect(() => {
+    if (activeSessionId) {
+      setReadSessionIds((prev) => {
+        const next = new Set(prev);
+        next.add(activeSessionId);
+        return next;
+      });
+    }
+  }, [activeSessionId]);
+
+  const handleSelect = (session: ChatSession) => {
+    setReadSessionIds((prev) => {
+      const next = new Set(prev);
+      next.add(session.id);
+      return next;
+    });
+    onSelectSession(session);
+  };
 
   // Filtered & Sorted Sessions
   const filteredSessions = useMemo(() => {
@@ -46,7 +67,7 @@ export default function ConversationList({
     }
 
     if (activeFilter === 'pendientes') {
-      list = list.filter((s) => isWaitingForResponse(s.history));
+      list = list.filter((s) => isWaitingForResponse(s.history) && !readSessionIds.has(s.id));
     } else if (activeFilter === 'agendados') {
       list = list.filter((s) => s.estado === 'cita_agendada' || s.cita_odoo_id !== null);
     } else if (activeFilter === 'takeover') {
@@ -54,9 +75,9 @@ export default function ConversationList({
     }
 
     list.sort((a, b) => {
-      const aPending = isWaitingForResponse(a.history) ? 0 : 1;
-      const bPending = isWaitingForResponse(b.history) ? 0 : 1;
-      if (aPending !== bPending) return aPending - bPending;
+      const aUnread = isWaitingForResponse(a.history) && !readSessionIds.has(a.id) ? 0 : 1;
+      const bUnread = isWaitingForResponse(b.history) && !readSessionIds.has(b.id) ? 0 : 1;
+      if (aUnread !== bUnread) return aUnread - bUnread;
 
       const aTakeover = !a.bot_mode ? 0 : 1;
       const bTakeover = !b.bot_mode ? 0 : 1;
@@ -66,7 +87,7 @@ export default function ConversationList({
     });
 
     return list;
-  }, [sessions, search, activeFilter]);
+  }, [sessions, search, activeFilter, readSessionIds]);
 
   // Group by Time
   const groupedSessions = useMemo(() => {
@@ -80,11 +101,14 @@ export default function ConversationList({
     return order.filter((g) => map[g]?.length > 0).map((g) => ({ label: g, items: map[g] }));
   }, [filteredSessions]);
 
-  const pendingCount = sessions.filter((s) => isWaitingForResponse(s.history)).length;
+  const unreadCount = sessions.filter(
+    (s) => isWaitingForResponse(s.history) && !readSessionIds.has(s.id)
+  ).length;
+
   const takeoverCount = sessions.filter((s) => !s.bot_mode).length;
 
   return (
-    <div className="w-80 md:w-88 xl:w-96 bg-white border-r border-slate-200 flex flex-col h-full select-none flex-shrink-0">
+    <div className="w-full bg-white border-r border-slate-200 flex flex-col h-full select-none flex-shrink-0">
       {/* Search & Filter Bar */}
       <div className="p-3 border-b border-slate-100 flex flex-col gap-2.5">
         <div className="flex items-center gap-2">
@@ -127,10 +151,10 @@ export default function ConversationList({
                 : 'bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200/60'
             }`}
           >
-            <span>🔴 Pendientes</span>
-            {pendingCount > 0 && (
+            <span>🔴 No leídos</span>
+            {unreadCount > 0 && (
               <span className="bg-white text-rose-700 text-[10px] font-bold px-1.5 py-0.2 rounded-full">
-                {pendingCount}
+                {unreadCount}
               </span>
             )}
           </button>
@@ -183,14 +207,17 @@ export default function ConversationList({
                 const messages = session.history?.filter((m) => m.role !== 'system') || [];
                 const lastMsg = messages[messages.length - 1];
                 const intent = lastMsg ? getIntent(lastMsg.content) : null;
-                const isWaiting = isWaitingForResponse(session.history);
                 const isSelected = session.id === activeSessionId;
+                
+                // UNREAD LOGIC: If waiting for response AND not in readSessionIds AND not currently selected
+                const isUnread = isWaitingForResponse(session.history) && !readSessionIds.has(session.id) && !isSelected;
+
                 const exactTime = formatTimeBogota(session.updated_at);
                 const waitTime = getWaitTime(session.updated_at);
                 const isBotActive = session.bot_mode;
 
-                const avatarBg = isWaiting
-                  ? 'bg-rose-100 text-rose-700 border-rose-300'
+                const avatarBg = isUnread
+                  ? 'bg-blue-600 text-white border-blue-600 shadow-sm ring-2 ring-blue-200'
                   : !isBotActive
                   ? 'bg-amber-100 text-amber-800 border-amber-300'
                   : 'bg-emerald-100 text-emerald-800 border-emerald-300';
@@ -198,11 +225,13 @@ export default function ConversationList({
                 return (
                   <div
                     key={session.id}
-                    onClick={() => onSelectSession(session)}
+                    onClick={() => handleSelect(session)}
                     className={`relative p-3.5 border-b border-slate-100 cursor-pointer transition-all duration-150 flex gap-3 items-start ${
                       isSelected
-                        ? 'bg-blue-50/70 border-l-4 border-l-blue-600 shadow-xs'
-                        : 'border-l-4 border-l-transparent hover:bg-slate-50'
+                        ? 'bg-blue-50/80 border-l-4 border-l-blue-600 shadow-xs'
+                        : isUnread
+                        ? 'bg-blue-50/60 hover:bg-blue-100/70 border-l-4 border-l-blue-600 shadow-2xs font-semibold'
+                        : 'bg-white hover:bg-slate-50 border-l-4 border-l-transparent'
                     }`}
                   >
                     {/* Avatar */}
@@ -220,17 +249,44 @@ export default function ConversationList({
                     {/* Chat Info */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-1 mb-1">
-                        <h4 className="text-xs font-bold text-slate-800 truncate">
-                          {name || `+${session.wa_from}`}
-                        </h4>
-                        {/* Exact timestamp like Pancake (e.g. 12:13 PM) */}
-                        <span className="text-[10px] font-bold text-slate-500 flex-shrink-0 bg-slate-100 px-1.5 py-0.5 rounded">
-                          {exactTime || waitTime}
-                        </span>
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <h4
+                            className={`text-xs truncate ${
+                              isUnread
+                                ? 'font-extrabold text-blue-950'
+                                : isSelected
+                                ? 'font-bold text-blue-900'
+                                : 'font-semibold text-slate-800'
+                            }`}
+                          >
+                            {name || `+${session.wa_from}`}
+                          </h4>
+                          {/* Sombreado / Dot azul para mensajes no leídos */}
+                          {isUnread && (
+                            <span className="w-2 h-2 rounded-full bg-blue-600 flex-shrink-0 animate-pulse" />
+                          )}
+                        </div>
+
+                        {/* Timestamp & Unread Badge */}
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          <span
+                            className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
+                              isUnread
+                                ? 'bg-blue-600 text-white font-bold'
+                                : 'bg-slate-100 text-slate-500'
+                            }`}
+                          >
+                            {exactTime || waitTime}
+                          </span>
+                        </div>
                       </div>
 
                       {/* Last Message Snippet */}
-                      <p className="text-[11px] text-slate-500 line-clamp-1 mb-1.5 leading-tight">
+                      <p
+                        className={`text-[11px] line-clamp-1 mb-1.5 leading-tight ${
+                          isUnread ? 'text-slate-900 font-medium' : 'text-slate-500'
+                        }`}
+                      >
                         {!isBotActive && (
                           <span className="font-semibold text-amber-700 mr-1">[Asesor]:</span>
                         )}
@@ -240,11 +296,11 @@ export default function ConversationList({
                         {lastMsg ? lastMsg.content : 'Sin mensajes'}
                       </p>
 
-                      {/* Badges */}
+                      {/* Status Badges */}
                       <div className="flex items-center gap-1 flex-wrap">
-                        {isWaiting && (
-                          <span className="text-[9px] font-semibold bg-rose-100 text-rose-700 px-1.5 py-0.5 rounded border border-rose-200">
-                            🔴 Espera Respuesta
+                        {isUnread && (
+                          <span className="text-[9px] font-bold bg-blue-600 text-white px-1.5 py-0.5 rounded shadow-2xs">
+                            ● Nuevo Mensaje
                           </span>
                         )}
 

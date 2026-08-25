@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { ChatSession, Message } from '@/lib/types';
 import { getTenantId } from '@/lib/tenant';
-import { MessageSquare, RefreshCw } from 'lucide-react';
+import { MessageSquare } from 'lucide-react';
 import ConversationList from '@/components/inbox/ConversationList';
 import ChatHeader from '@/components/chat/ChatHeader';
 import ChatFeed from '@/components/chat/ChatFeed';
@@ -18,9 +18,8 @@ export default function InboxPage() {
   const [activeSession, setActiveSession] = useState<ChatSession | null>(null);
   const [loading, setLoading] = useState(true);
   const [sendingMsg, setSendingMsg] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [lastRefresh, setLastRefresh] = useState(new Date());
   const [showCrmPanel, setShowCrmPanel] = useState(true);
+  const [mobileView, setMobileView] = useState<'list' | 'chat' | 'crm'>('list');
   const [selectedTags, setSelectedTags] = useState<string[]>(['cita_confirmada']);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -29,7 +28,6 @@ export default function InboxPage() {
     const activeTid = tid || tenantId;
     if (!activeTid) return;
     if (!silent) setLoading(true);
-    else setIsRefreshing(true);
 
     try {
       const { data, error } = await supabase
@@ -46,14 +44,12 @@ export default function InboxPage() {
 
       const loaded = (data as ChatSession[]) || [];
       setSessions(loaded);
-      setLastRefresh(new Date());
 
       if (!silent) {
         setActiveSession((prev) => prev || loaded[0] || null);
       }
     } finally {
       setLoading(false);
-      setIsRefreshing(false);
     }
   }, [tenantId]);
 
@@ -109,10 +105,16 @@ export default function InboxPage() {
     };
   }, [tenantId]);
 
-  // Scroll to bottom on new message
+  // Auto scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [activeSession?.history?.length]);
+
+  // Select session with mobile view switch
+  const handleSelectSession = (session: ChatSession) => {
+    setActiveSession(session);
+    setMobileView('chat');
+  };
 
   // Toggle Bot Mode
   const toggleBotMode = async (session: ChatSession) => {
@@ -197,22 +199,39 @@ export default function InboxPage() {
 
   return (
     <div className="flex h-screen bg-white font-sans text-slate-800 overflow-hidden select-none">
-      {/* Column 1: Conversations List */}
-      <ConversationList
-        sessions={sessions}
-        activeSessionId={activeSession?.id || null}
-        onSelectSession={setActiveSession}
-      />
+      {/* Column 1: Conversations List (Visible on desktop or when mobileView === 'list') */}
+      <div
+        className={`${
+          mobileView === 'list' ? 'flex w-full' : 'hidden'
+        } md:flex md:w-80 lg:w-88 xl:w-96 flex-shrink-0 h-full`}
+      >
+        <ConversationList
+          sessions={sessions}
+          activeSessionId={activeSession?.id || null}
+          onSelectSession={handleSelectSession}
+        />
+      </div>
 
-      {/* Column 2: Central Chat View */}
-      <main className="flex-1 flex flex-col min-w-0 bg-[#F8FAFC]">
+      {/* Column 2: Central Chat View (Visible on desktop or when mobileView === 'chat') */}
+      <main
+        className={`${
+          mobileView === 'chat' ? 'flex' : 'hidden'
+        } md:flex flex-1 flex-col min-w-0 bg-[#F8FAFC] h-full`}
+      >
         {activeSession ? (
           <>
             <ChatHeader
               session={activeSession}
               onToggleBot={toggleBotMode}
               showCrmPanel={showCrmPanel}
-              onToggleCrmPanel={() => setShowCrmPanel(!showCrmPanel)}
+              onToggleCrmPanel={() => {
+                if (typeof window !== 'undefined' && window.innerWidth < 768) {
+                  setMobileView('crm');
+                } else {
+                  setShowCrmPanel(!showCrmPanel);
+                }
+              }}
+              onBackToList={() => setMobileView('list')}
             />
 
             <ChatFeed
@@ -246,12 +265,19 @@ export default function InboxPage() {
         )}
       </main>
 
-      {/* Column 3: CRM & Appointments Panel */}
-      {activeSession && showCrmPanel && (
-        <CustomerCrmPanel
-          session={activeSession}
-          onUpdateSession={() => fetchSessions(tenantId, true)}
-        />
+      {/* Column 3: CRM & Appointments Panel (Visible on desktop when showCrmPanel or when mobileView === 'crm') */}
+      {activeSession && (
+        <div
+          className={`${
+            mobileView === 'crm' ? 'flex w-full fixed inset-0 z-30' : showCrmPanel ? 'hidden md:flex' : 'hidden'
+          } md:relative md:w-80 lg:w-88 flex-shrink-0 h-full`}
+        >
+          <CustomerCrmPanel
+            session={activeSession}
+            onUpdateSession={() => fetchSessions(tenantId, true)}
+            onCloseMobile={() => setMobileView('chat')}
+          />
+        </div>
       )}
     </div>
   );
