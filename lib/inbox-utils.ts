@@ -25,8 +25,45 @@ export function getIntent(content: string): { icon: string; label: string } {
 
 const BOG = 'America/Bogota';
 
-function bogotaDateStr(date: Date): string {
+export function bogotaDateStr(date: Date): string {
   return date.toLocaleDateString('en-CA', { timeZone: BOG });
+}
+
+export function formatTimeBogota(isoOrTimestamp?: string | null): string {
+  if (!isoOrTimestamp) return '';
+  try {
+    const d = new Date(isoOrTimestamp);
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleTimeString('es-CO', {
+      timeZone: BOG,
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    });
+  } catch {
+    return '';
+  }
+}
+
+export function formatDateLabel(isoDate: string): string {
+  try {
+    const d = new Date(isoDate);
+    const todayStr = bogotaDateStr(new Date());
+    const targetStr = bogotaDateStr(d);
+    const yesterday = bogotaDateStr(new Date(Date.now() - 86400000));
+
+    if (targetStr === todayStr) return 'Hoy';
+    if (targetStr === yesterday) return 'Ayer';
+
+    return d.toLocaleDateString('es-CO', {
+      timeZone: BOG,
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
+  } catch {
+    return 'Hoy';
+  }
 }
 
 export function getWaitTime(updatedAt: string): string {

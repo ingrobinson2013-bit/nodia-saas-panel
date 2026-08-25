@@ -13,6 +13,7 @@ import {
   Pause,
   X,
 } from 'lucide-react';
+import { formatTimeBogota, formatDateLabel } from '@/lib/inbox-utils';
 
 interface ChatFeedProps {
   messages: Message[];
@@ -41,7 +42,7 @@ export default function ChatFeed({
 
   return (
     <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 bg-[#F8FAFC] relative select-none">
-      {/* Subtle Background Pattern */}
+      {/* Background Pattern */}
       <div
         className="absolute inset-0 opacity-[0.03] pointer-events-none"
         style={{
@@ -60,10 +61,10 @@ export default function ChatFeed({
         </div>
       )}
 
-      {/* Date Divider */}
+      {/* Date Header Pill */}
       <div className="flex justify-center my-2">
-        <span className="bg-slate-200/70 text-slate-600 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-          Hoy
+        <span className="bg-slate-200/80 text-slate-700 text-[10px] font-bold px-3.5 py-1 rounded-full uppercase tracking-wider shadow-2xs">
+          {formatDateLabel(new Date().toISOString())}
         </span>
       </div>
 
@@ -74,6 +75,10 @@ export default function ChatFeed({
           msg.content.startsWith('[AUDIO]') ||
           msg.content.includes('.ogg') ||
           msg.content.includes('.mp3');
+
+        const messageTime =
+          formatTimeBogota(msg.timestamp) ||
+          formatTimeBogota(new Date().toISOString());
 
         let isJsonAction = false;
         let actionPayload: any = null;
@@ -93,14 +98,17 @@ export default function ChatFeed({
                   <Calendar className="w-4 h-4 text-blue-600" />
                 </div>
                 <div>
-                  <p className="font-bold text-slate-800 text-xs">
-                    {actionPayload.action === 'BOOK'
-                      ? '✨ Agendamiento en Odoo'
-                      : actionPayload.action === 'CANCEL'
-                      ? '✕ Cancelación de Cita'
-                      : 'Acción de Sistema'}
-                  </p>
-                  <p className="text-[11px] text-slate-600">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="font-bold text-slate-800 text-xs">
+                      {actionPayload.action === 'BOOK'
+                        ? '✨ Agendamiento en Odoo'
+                        : actionPayload.action === 'CANCEL'
+                        ? '✕ Cancelación de Cita'
+                        : 'Acción de Sistema'}
+                    </p>
+                    <span className="text-[9px] text-slate-400 font-semibold">{messageTime}</span>
+                  </div>
+                  <p className="text-[11px] text-slate-600 mt-0.5">
                     {actionPayload.name && (
                       <span>
                         Cliente: <strong>{actionPayload.name}</strong> •{' '}
@@ -207,17 +215,13 @@ export default function ChatFeed({
                 <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
               )}
 
+              {/* Exact Message Timestamp (Hour & Minute in Bogota Time) */}
               <div
-                className={`flex items-center justify-end gap-1 mt-1 text-[10px] ${
+                className={`flex items-center justify-end gap-1 mt-1.5 text-[10px] ${
                   isUser ? 'text-slate-400' : isTemplate ? 'text-emerald-700' : 'text-emerald-100'
                 }`}
               >
-                <span>
-                  {new Date().toLocaleTimeString('es-CO', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
-                </span>
+                <span className="font-medium">{messageTime}</span>
                 {!isUser && <CheckCheck className="w-3.5 h-3.5 text-emerald-200" />}
               </div>
             </div>

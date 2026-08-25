@@ -10,6 +10,7 @@ import {
   getTimeGroup,
   isWaitingForResponse,
   getInitials,
+  formatTimeBogota,
 } from '@/lib/inbox-utils';
 
 type FilterType = 'todos' | 'pendientes' | 'agendados' | 'takeover';
@@ -32,7 +33,6 @@ export default function ConversationList({
   const filteredSessions = useMemo(() => {
     let list = [...sessions];
 
-    // Search query
     if (search.trim()) {
       const q = search.toLowerCase();
       list = list.filter((s) => {
@@ -45,7 +45,6 @@ export default function ConversationList({
       });
     }
 
-    // Filter type
     if (activeFilter === 'pendientes') {
       list = list.filter((s) => isWaitingForResponse(s.history));
     } else if (activeFilter === 'agendados') {
@@ -54,7 +53,6 @@ export default function ConversationList({
       list = list.filter((s) => !s.bot_mode);
     }
 
-    // Intelligent Sort: Pending user messages first -> Takeovers -> Recent timestamp
     list.sort((a, b) => {
       const aPending = isWaitingForResponse(a.history) ? 0 : 1;
       const bPending = isWaitingForResponse(b.history) ? 0 : 1;
@@ -87,7 +85,7 @@ export default function ConversationList({
 
   return (
     <div className="w-80 md:w-88 xl:w-96 bg-white border-r border-slate-200 flex flex-col h-full select-none flex-shrink-0">
-      {/* Top Search & Filter Bar */}
+      {/* Search & Filter Bar */}
       <div className="p-3 border-b border-slate-100 flex flex-col gap-2.5">
         <div className="flex items-center gap-2">
           <div className="relative flex-1">
@@ -108,7 +106,7 @@ export default function ConversationList({
           </button>
         </div>
 
-        {/* Filter Pills (Pancake Style) */}
+        {/* Filter Pills */}
         <div className="flex items-center gap-1 overflow-x-auto pb-0.5 scrollbar-none">
           <button
             onClick={() => setActiveFilter('todos')}
@@ -172,9 +170,11 @@ export default function ConversationList({
         ) : (
           groupedSessions.map((group) => (
             <div key={group.label}>
-              {/* Group Header */}
-              <div className="px-3.5 py-1.5 bg-slate-50 border-y border-slate-100 text-[10px] font-bold text-slate-500 uppercase tracking-wider sticky top-0 z-10">
-                {group.label}
+              <div className="px-3.5 py-1.5 bg-slate-50 border-y border-slate-100 text-[10px] font-bold text-slate-500 uppercase tracking-wider sticky top-0 z-10 flex items-center justify-between">
+                <span>{group.label}</span>
+                <span className="text-[9px] font-normal text-slate-400">
+                  {group.items.length} {group.items.length === 1 ? 'chat' : 'chats'}
+                </span>
               </div>
 
               {group.items.map((session) => {
@@ -185,6 +185,7 @@ export default function ConversationList({
                 const intent = lastMsg ? getIntent(lastMsg.content) : null;
                 const isWaiting = isWaitingForResponse(session.history);
                 const isSelected = session.id === activeSessionId;
+                const exactTime = formatTimeBogota(session.updated_at);
                 const waitTime = getWaitTime(session.updated_at);
                 const isBotActive = session.bot_mode;
 
@@ -222,9 +223,9 @@ export default function ConversationList({
                         <h4 className="text-xs font-bold text-slate-800 truncate">
                           {name || `+${session.wa_from}`}
                         </h4>
-                        <span className="text-[10px] font-medium text-slate-400 flex-shrink-0 flex items-center gap-0.5">
-                          <Clock className="w-2.5 h-2.5" />
-                          {waitTime}
+                        {/* Exact timestamp like Pancake (e.g. 12:13 PM) */}
+                        <span className="text-[10px] font-bold text-slate-500 flex-shrink-0 bg-slate-100 px-1.5 py-0.5 rounded">
+                          {exactTime || waitTime}
                         </span>
                       </div>
 
@@ -239,7 +240,7 @@ export default function ConversationList({
                         {lastMsg ? lastMsg.content : 'Sin mensajes'}
                       </p>
 
-                      {/* Status Badges */}
+                      {/* Badges */}
                       <div className="flex items-center gap-1 flex-wrap">
                         {isWaiting && (
                           <span className="text-[9px] font-semibold bg-rose-100 text-rose-700 px-1.5 py-0.5 rounded border border-rose-200">
