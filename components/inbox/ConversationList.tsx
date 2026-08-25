@@ -36,7 +36,7 @@ export default function ConversationList({
     if (search.trim()) {
       const q = search.toLowerCase();
       list = list.filter((s) => {
-        const name = getClientName(s.history)?.toLowerCase() || '';
+        const name = getClientName(s)?.toLowerCase() || '';
         return (
           name.includes(q) ||
           s.wa_from.includes(q) ||
@@ -178,7 +178,7 @@ export default function ConversationList({
               </div>
 
               {group.items.map((session) => {
-                const name = getClientName(session.history);
+                const name = getClientName(session);
                 const initials = getInitials(name, session.wa_from);
                 const messages = session.history?.filter((m) => m.role !== 'system') || [];
                 const lastMsg = messages[messages.length - 1];

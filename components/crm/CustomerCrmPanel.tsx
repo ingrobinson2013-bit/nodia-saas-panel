@@ -61,7 +61,7 @@ export default function CustomerCrmPanel({
     },
   ]);
 
-  const clientName = getClientName(session.history) || 'Cliente WhatsApp';
+  const clientName = getClientName(session) || 'Cliente WhatsApp';
   const appointment = extractAppointmentFromHistory(session.history);
 
   const handleCopyPhone = () => {

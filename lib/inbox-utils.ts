@@ -1,15 +1,39 @@
-import { Message } from '@/lib/types';
+import { Message, ChatSession } from '@/lib/types';
 
-export function getClientName(history?: Message[] | null): string | null {
+export function getClientName(
+  sessionOrHistory?: ChatSession | Message[] | null
+): string | null {
+  if (!sessionOrHistory) return null;
+
+  // 1. Prioridad: Campo directo "name" de Meta WhatsApp Profile en la sesión
+  if (typeof sessionOrHistory === 'object' && !Array.isArray(sessionOrHistory)) {
+    const session = sessionOrHistory as ChatSession;
+    if (session.name && typeof session.name === 'string' && session.name.trim() && session.name !== 'None' && session.name !== 'null') {
+      return session.name.trim();
+    }
+  }
+
+  // 2. Extraer historial si se pasó la sesión o el arreglo
+  const history: Message[] | null = Array.isArray(sessionOrHistory)
+    ? sessionOrHistory
+    : (sessionOrHistory as ChatSession).history || null;
+
   if (!history) return null;
+
+  // 3. Buscar en payloads JSON estructurados (ej. agendamientos, bookings)
   for (const msg of history) {
     try {
       const p = JSON.parse(msg.content);
-      if (p?.name) return p.name;
+      if (p?.name && typeof p.name === 'string' && p.name.trim()) return p.name.trim();
+      if (p?.client_name && typeof p.client_name === 'string' && p.client_name.trim()) return p.client_name.trim();
+      if (p?.sender_name && typeof p.sender_name === 'string' && p.sender_name.trim()) return p.sender_name.trim();
     } catch {}
-    const m = msg.content.match(/(?:mi nombre es:|nombre:|name:)\s*([^\n,]+)/i);
-    if (m) return m[1].trim();
+
+    // 4. Buscar en texto ("Mi nombre es Robinson...")
+    const m = msg.content.match(/(?:mi nombre es:|nombre:|name:|cliente:)\s*([^\n,]+)/i);
+    if (m && m[1] && m[1].trim()) return m[1].trim();
   }
+
   return null;
 }
 
@@ -96,7 +120,16 @@ export function isWaitingForResponse(history?: Message[] | null): boolean {
 }
 
 export function getInitials(name: string | null, phone: string): string {
-  if (name) return name.split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase();
+  if (name && name.trim()) {
+    return name
+      .trim()
+      .split(' ')
+      .filter(Boolean)
+      .map((w) => w[0])
+      .slice(0, 2)
+      .join('')
+      .toUpperCase();
+  }
   return phone ? phone.slice(-2) : 'WA';
 }
 

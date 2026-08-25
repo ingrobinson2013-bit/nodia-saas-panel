@@ -18,7 +18,7 @@ export default function ChatHeader({
   showCrmPanel,
   onToggleCrmPanel,
 }: ChatHeaderProps) {
-  const clientName = getClientName(session.history);
+  const clientName = getClientName(session);
   const initials = getInitials(clientName, session.wa_from);
   const isBotActive = session.bot_mode;
 
