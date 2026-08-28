@@ -69,6 +69,59 @@ export function formatTimeBogota(isoOrTimestamp?: string | null): string {
   }
 }
 
+export function formatFullDateBogota(isoDate?: string | null): string {
+  if (!isoDate) return '';
+  try {
+    const d = new Date(isoDate);
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleDateString('es-CO', {
+      timeZone: BOG,
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    });
+  } catch {
+    return '';
+  }
+}
+
+export function formatCardDateTime(isoOrTimestamp?: string | null): string {
+  if (!isoOrTimestamp) return '';
+  try {
+    const d = new Date(isoOrTimestamp);
+    if (isNaN(d.getTime())) return '';
+
+    const todayStr = bogotaDateStr(new Date());
+    const targetStr = bogotaDateStr(d);
+    const yesterday = bogotaDateStr(new Date(Date.now() - 86400000));
+
+    const timeStr = d.toLocaleTimeString('es-CO', {
+      timeZone: BOG,
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    });
+
+    if (targetStr === todayStr) {
+      return `Hoy, ${timeStr}`;
+    }
+    if (targetStr === yesterday) {
+      return `Ayer, ${timeStr}`;
+    }
+
+    const dateShort = d.toLocaleDateString('es-CO', {
+      timeZone: BOG,
+      day: 'numeric',
+      month: 'short',
+    });
+
+    return `${dateShort}, ${timeStr}`;
+  } catch {
+    return '';
+  }
+}
+
 export function formatDateLabel(isoDate: string): string {
   try {
     const d = new Date(isoDate);
@@ -81,6 +134,7 @@ export function formatDateLabel(isoDate: string): string {
 
     return d.toLocaleDateString('es-CO', {
       timeZone: BOG,
+      weekday: 'short',
       day: 'numeric',
       month: 'short',
       year: 'numeric',
@@ -88,6 +142,33 @@ export function formatDateLabel(isoDate: string): string {
   } catch {
     return 'Hoy';
   }
+}
+
+export function getSessionLatestTime(session: ChatSession): number {
+  if (session.history && session.history.length > 0) {
+    for (let i = session.history.length - 1; i >= 0; i--) {
+      const msg = session.history[i];
+      if (msg.timestamp) {
+        const t = new Date(msg.timestamp).getTime();
+        if (!isNaN(t)) return t;
+      }
+    }
+  }
+  if (session.updated_at) {
+    const t = new Date(session.updated_at).getTime();
+    if (!isNaN(t)) return t;
+  }
+  return 0;
+}
+
+export function getSessionLatestTimestamp(session: ChatSession): string {
+  if (session.history && session.history.length > 0) {
+    for (let i = session.history.length - 1; i >= 0; i--) {
+      const msg = session.history[i];
+      if (msg.timestamp) return msg.timestamp;
+    }
+  }
+  return session.updated_at || new Date().toISOString();
 }
 
 export function getWaitTime(updatedAt: string): string {
@@ -100,9 +181,9 @@ export function getWaitTime(updatedAt: string): string {
   return `${Math.floor(h / 24)}d`;
 }
 
-export function getTimeGroup(updatedAt: string): string {
+export function getTimeGroup(isoTimestamp: string): string {
   const nowStr = bogotaDateStr(new Date());
-  const dateStr = bogotaDateStr(new Date(updatedAt));
+  const dateStr = bogotaDateStr(new Date(isoTimestamp));
   const yesterday = bogotaDateStr(new Date(Date.now() - 86400000));
   const weekAgo = bogotaDateStr(new Date(Date.now() - 6 * 86400000));
 
@@ -175,12 +256,10 @@ export function extractAppointmentFromHistory(history?: Message[] | null) {
   let isCancelled = false;
   let foundAny = false;
 
-  // 1. Check in reverse (most recent message first)
   for (let i = history.length - 1; i >= 0; i--) {
     const msg = history[i];
     const content = msg.content || '';
 
-    // Check JSON payload
     try {
       const p = JSON.parse(content);
       if (p && (p.action === 'BOOK' || p.action === 'CREATE_APPOINTMENT' || p.service || p.date)) {
@@ -198,31 +277,26 @@ export function extractAppointmentFromHistory(history?: Message[] | null) {
       }
     } catch {}
 
-    // Check cancellation keyword in text
     if (/cancelad[ao]|cancelaci[oó]n/i.test(content)) {
       isCancelled = true;
     }
 
-    // Extract Time: "a las 8:00 AM" or "a las 11:00 AM" or "a las 3:30 pm"
     const timeMatch = content.match(/(?:a las\s+)?(\d{1,2}(?::\d{2})?\s*(?:AM|PM|a\.\s*m\.|p\.\s*m\.|am|pm))/i);
     if (timeMatch && !foundAny) {
       time = timeMatch[1].toUpperCase().replace(/\s+/g, ' ');
       foundAny = true;
     }
 
-    // Extract Date: "mañana, Miércoles 26 de agosto" or "para mañana" or "hoy"
     const dateMatch = content.match(/(mañana[,\s]+(?:\w+)?\s*\d{1,2}\s+de\s+[a-záéíóú]+(?:\s+de\s+\d{4})?|mañana|hoy|\d{1,2}\s+de\s+[a-záéíóú]+(?:\s+de\s+\d{4})?)/i);
     if (dateMatch) {
       date = dateMatch[1];
     }
 
-    // Extract Professional: "con Jose Roa" or "con Paola"
     const proMatch = content.match(/con\s+([A-ZÁÉÍÓÚ][a-zñáéíóú]+(?:\s+[A-ZÁÉÍÓÚ][a-zñáéíóú]+)?)/i);
     if (proMatch) {
       professional = proMatch[1];
     }
 
-    // Extract Service: "para un Corte Caballero Clásico" or "servicio de Limpieza Facial"
     const srvMatch = content.match(/para (?:un|una|el servicio de)?\s*([A-ZÁÉÍÓÚa-zñáéíóú\s+]+?)(?:\.|\?|\n|con|para|a las|$)/i);
     if (srvMatch && srvMatch[1].trim().length > 3) {
       service = srvMatch[1].trim();

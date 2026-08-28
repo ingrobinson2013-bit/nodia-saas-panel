@@ -2,15 +2,16 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { ChatSession } from '@/lib/types';
-import { Search, Filter, MessageSquare, Clock, Check } from 'lucide-react';
+import { Search, Filter, MessageSquare, Check, Calendar } from 'lucide-react';
 import {
   getClientName,
   getIntent,
-  getWaitTime,
   getTimeGroup,
   isWaitingForResponse,
   getInitials,
-  formatTimeBogota,
+  formatCardDateTime,
+  getSessionLatestTime,
+  getSessionLatestTimestamp,
 } from '@/lib/inbox-utils';
 
 type FilterType = 'todos' | 'pendientes' | 'agendados' | 'takeover';
@@ -50,7 +51,7 @@ export default function ConversationList({
     onSelectSession(session);
   };
 
-  // Filtered & Sorted Sessions
+  // Filtered & Strictly Sorted by Latest Date/Time
   const filteredSessions = useMemo(() => {
     let list = [...sessions];
 
@@ -74,27 +75,23 @@ export default function ConversationList({
       list = list.filter((s) => !s.bot_mode);
     }
 
+    // STRICT CHRONOLOGICAL SORTING: Latest message timestamp first (Descending)
     list.sort((a, b) => {
-      const aUnread = isWaitingForResponse(a.history) && !readSessionIds.has(a.id) ? 0 : 1;
-      const bUnread = isWaitingForResponse(b.history) && !readSessionIds.has(b.id) ? 0 : 1;
-      if (aUnread !== bUnread) return aUnread - bUnread;
-
-      const aTakeover = !a.bot_mode ? 0 : 1;
-      const bTakeover = !b.bot_mode ? 0 : 1;
-      if (aTakeover !== bTakeover) return aTakeover - bTakeover;
-
-      return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+      const timeA = getSessionLatestTime(a);
+      const timeB = getSessionLatestTime(b);
+      return timeB - timeA;
     });
 
     return list;
   }, [sessions, search, activeFilter, readSessionIds]);
 
-  // Group by Time
+  // Group by Time (Hoy, Ayer, Esta semana, Más antiguos)
   const groupedSessions = useMemo(() => {
     const order = ['Hoy', 'Ayer', 'Esta semana', 'Más antiguos'];
     const map: Record<string, ChatSession[]> = {};
     filteredSessions.forEach((s) => {
-      const g = getTimeGroup(s.updated_at);
+      const latestTs = getSessionLatestTimestamp(s);
+      const g = getTimeGroup(latestTs);
       if (!map[g]) map[g] = [];
       map[g].push(s);
     });
@@ -209,11 +206,11 @@ export default function ConversationList({
                 const intent = lastMsg ? getIntent(lastMsg.content) : null;
                 const isSelected = session.id === activeSessionId;
                 
-                // UNREAD LOGIC: If waiting for response AND not in readSessionIds AND not currently selected
+                // UNREAD LOGIC
                 const isUnread = isWaitingForResponse(session.history) && !readSessionIds.has(session.id) && !isSelected;
 
-                const exactTime = formatTimeBogota(session.updated_at);
-                const waitTime = getWaitTime(session.updated_at);
+                const latestTimestamp = getSessionLatestTimestamp(session);
+                const formattedDateTime = formatCardDateTime(latestTimestamp);
                 const isBotActive = session.bot_mode;
 
                 const avatarBg = isUnread
@@ -261,22 +258,21 @@ export default function ConversationList({
                           >
                             {name || `+${session.wa_from}`}
                           </h4>
-                          {/* Sombreado / Dot azul para mensajes no leídos */}
                           {isUnread && (
                             <span className="w-2 h-2 rounded-full bg-blue-600 flex-shrink-0 animate-pulse" />
                           )}
                         </div>
 
-                        {/* Timestamp & Unread Badge */}
+                        {/* Exact Date & Time Badge */}
                         <div className="flex items-center gap-1 flex-shrink-0">
                           <span
-                            className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
+                            className={`text-[10px] px-1.5 py-0.5 rounded font-medium flex items-center gap-1 ${
                               isUnread
                                 ? 'bg-blue-600 text-white font-bold'
-                                : 'bg-slate-100 text-slate-500'
+                                : 'bg-slate-100 text-slate-600'
                             }`}
                           >
-                            {exactTime || waitTime}
+                            {formattedDateTime}
                           </span>
                         </div>
                       </div>

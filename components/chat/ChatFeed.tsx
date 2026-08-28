@@ -11,10 +11,9 @@ import {
   Pause,
   CheckCheck,
   X,
-  Volume2,
   Mic,
 } from 'lucide-react';
-import { formatTimeBogota, formatDateLabel } from '@/lib/inbox-utils';
+import { formatTimeBogota, formatDateLabel, bogotaDateStr } from '@/lib/inbox-utils';
 
 interface ChatFeedProps {
   messages: Message[];
@@ -63,18 +62,17 @@ export default function ChatFeed({
         </div>
       )}
 
-      {/* Date Header Pill */}
-      <div className="flex justify-center my-2">
-        <span className="bg-slate-200/80 text-slate-700 text-[10px] font-bold px-3.5 py-1 rounded-full uppercase tracking-wider shadow-2xs">
-          {formatDateLabel(new Date().toISOString())}
-        </span>
-      </div>
-
-      {/* Messages Feed */}
+      {/* Messages Feed with Dynamic Date Separators */}
       {messages.map((msg, index) => {
         const isUser = msg.role === 'user';
         const contentStr = msg.content || '';
-        
+
+        // Check if date changed from previous message
+        const currentMsgDate = msg.timestamp ? bogotaDateStr(new Date(msg.timestamp)) : '';
+        const prevMsg = index > 0 ? messages[index - 1] : null;
+        const prevMsgDate = prevMsg?.timestamp ? bogotaDateStr(new Date(prevMsg.timestamp)) : '';
+        const showDateSeparator = index === 0 || (currentMsgDate && currentMsgDate !== prevMsgDate);
+
         // Detection of voice notes / audio
         const isAudio =
           contentStr.startsWith('[AUDIO]') ||
@@ -104,194 +102,186 @@ export default function ChatFeed({
           }
         } catch {}
 
-        if (isJsonAction) {
-          return (
-            <div key={index} className="flex justify-center my-2">
-              <div className="bg-white border border-blue-200 text-blue-900 px-4 py-2.5 rounded-2xl text-xs flex items-center gap-3 shadow-xs max-w-md">
-                <div className="w-8 h-8 rounded-full bg-blue-50 border border-blue-200 flex items-center justify-center flex-shrink-0">
-                  <Calendar className="w-4 h-4 text-blue-600" />
-                </div>
-                <div>
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="font-bold text-slate-800 text-xs">
-                      {actionPayload.action === 'BOOK'
-                        ? '✨ Agendamiento en Odoo'
-                        : actionPayload.action === 'CANCEL'
-                        ? '✕ Cancelación de Cita'
-                        : 'Acción de Sistema'}
-                    </p>
-                    <span className="text-[9px] text-slate-400 font-semibold">{messageTime}</span>
-                  </div>
-                  <p className="text-[11px] text-slate-600 mt-0.5">
-                    {actionPayload.name && (
-                      <span>
-                        Cliente: <strong>{actionPayload.name}</strong> •{' '}
-                      </span>
-                    )}
-                    {actionPayload.date && (
-                      <span>
-                        Fecha:{' '}
-                        <strong>
-                          {actionPayload.date} {actionPayload.time || ''}
-                        </strong>
-                      </span>
-                    )}
-                  </p>
-                </div>
-              </div>
-            </div>
-          );
-        }
-
-        const isTemplate =
-          contentStr.includes('¡Tu pedido ha sido') ||
-          contentStr.includes('¡Tu cita ha sido') ||
-          contentStr.includes('Gracias por confiar');
-
         return (
-          <div
-            key={index}
-            className={`flex ${isUser ? 'justify-start' : 'justify-end'} items-end gap-2`}
-          >
-            {isUser && (
-              <div className="w-7 h-7 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center flex-shrink-0 mb-1 border border-slate-300 text-xs font-semibold">
-                <User className="w-3.5 h-3.5" />
+          <React.Fragment key={index}>
+            {/* Dynamic Date Separator Pill */}
+            {showDateSeparator && (
+              <div className="flex justify-center my-3">
+                <span className="bg-slate-200/90 text-slate-700 text-[10px] font-bold px-3.5 py-1 rounded-full uppercase tracking-wider shadow-2xs border border-slate-300/60">
+                  {formatDateLabel(msg.timestamp || new Date().toISOString())}
+                </span>
               </div>
             )}
 
-            <div
-              className={`max-w-[88%] sm:max-w-[75%] rounded-2xl px-4 py-3 text-xs md:text-sm shadow-xs transition-all ${
-                isUser
-                  ? 'bg-white text-slate-800 rounded-bl-xs border border-slate-200'
-                  : isTemplate
-                  ? 'bg-[#E7F8E8] border border-[#B7EB8F] text-[#135200] rounded-br-xs'
-                  : 'bg-emerald-600 text-white rounded-br-xs'
-              }`}
-            >
-              {isTemplate && (
-                <div className="flex items-center justify-between pb-2 mb-2 border-b border-emerald-200/70 text-[10px] font-bold text-emerald-800">
-                  <span className="flex items-center gap-1">
-                    <Sparkles className="w-3.5 h-3.5 text-emerald-600" /> Plantilla Oficial WhatsApp
-                  </span>
-                  <span className="bg-emerald-200/80 px-2 py-0.5 rounded text-[9px]">Aprobada</span>
-                </div>
-              )}
-
-              {/* WhatsApp Audio & Voice Note Player */}
-              {isAudio ? (
-                <div className="space-y-2 min-w-[240px] max-w-sm">
-                  {/* Header Badge */}
-                  <div
-                    className={`flex items-center justify-between pb-1.5 border-b text-[10px] font-bold ${
-                      isUser
-                        ? 'border-slate-100 text-slate-600'
-                        : 'border-emerald-500/40 text-emerald-100'
-                    }`}
-                  >
-                    <span className="flex items-center gap-1">
-                      <Mic className="w-3.5 h-3.5 text-emerald-500" /> Nota de Voz WhatsApp
-                    </span>
-                    <span
-                      className={`text-[9px] px-1.5 py-0.2 rounded font-semibold ${
-                        isUser
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                          : 'bg-emerald-700/60 text-emerald-100'
-                      }`}
-                    >
-                      Whisper AI
-                    </span>
+            {isJsonAction ? (
+              <div className="flex justify-center my-2">
+                <div className="bg-white border border-blue-200 text-blue-900 px-4 py-2.5 rounded-2xl text-xs flex items-center gap-3 shadow-xs max-w-md">
+                  <div className="w-8 h-8 rounded-full bg-blue-50 border border-blue-200 flex items-center justify-center flex-shrink-0">
+                    <Calendar className="w-4 h-4 text-blue-600" />
                   </div>
-
-                  {/* Waveform Player */}
-                  <div className="flex items-center gap-3 py-1">
-                    <button
-                      type="button"
-                      onClick={() => toggleAudio(index)}
-                      className={`w-9 h-9 rounded-full flex items-center justify-center transition-all cursor-pointer shadow-xs flex-shrink-0 ${
-                        isUser
-                          ? 'bg-emerald-600 text-white hover:bg-emerald-700'
-                          : 'bg-white text-emerald-700 hover:bg-emerald-50'
-                      }`}
-                    >
-                      {playingAudioId === index ? (
-                        <Pause className="w-4 h-4" />
-                      ) : (
-                        <Play className="w-4 h-4 ml-0.5" />
+                  <div>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="font-bold text-slate-800 text-xs">
+                        {actionPayload.action === 'BOOK'
+                          ? '✨ Agendamiento en Odoo'
+                          : actionPayload.action === 'CANCEL'
+                          ? '✕ Cancelación de Cita'
+                          : 'Acción de Sistema'}
+                      </p>
+                      <span className="text-[9px] text-slate-400 font-semibold">{messageTime}</span>
+                    </div>
+                    <p className="text-[11px] text-slate-600 mt-0.5">
+                      {actionPayload.name && (
+                        <span>
+                          Cliente: <strong>{actionPayload.name}</strong> •{' '}
+                        </span>
                       )}
-                    </button>
+                      {actionPayload.date && (
+                        <span>
+                          Fecha:{' '}
+                          <strong>
+                            {actionPayload.date} {actionPayload.time || ''}
+                          </strong>
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div
+                className={`flex ${isUser ? 'justify-start' : 'justify-end'} items-end gap-2`}
+              >
+                {isUser && (
+                  <div className="w-7 h-7 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center flex-shrink-0 mb-1 border border-slate-300 text-xs font-semibold">
+                    <User className="w-3.5 h-3.5" />
+                  </div>
+                )}
 
-                    <div className="flex-1 space-y-1">
-                      <div className="flex items-center gap-0.5 h-6">
-                        {[40, 65, 30, 85, 50, 95, 70, 35, 60, 100, 45, 80, 30, 65, 90, 40].map(
-                          (h, i) => (
-                            <span
-                              key={i}
-                              className={`w-1 rounded-full transition-all ${
-                                isUser
-                                  ? playingAudioId === index && i < 10
-                                    ? 'bg-emerald-600'
-                                    : 'bg-slate-300'
-                                  : playingAudioId === index && i < 10
-                                  ? 'bg-white'
-                                  : 'bg-emerald-300/60'
-                              }`}
-                              style={{ height: `${h}%` }}
-                            />
-                          )
-                        )}
-                      </div>
-                      <div className="flex items-center justify-between text-[10px] opacity-85">
-                        <span className="font-mono">0:14</span>
-                        <button
-                          type="button"
-                          onClick={cycleSpeed}
-                          className={`font-bold px-1 rounded hover:underline cursor-pointer ${
-                            isUser ? 'bg-slate-100 text-slate-700' : 'bg-emerald-700/50 text-white'
+                <div
+                  className={`max-w-[88%] sm:max-w-[75%] rounded-2xl px-4 py-3 text-xs md:text-sm shadow-xs transition-all ${
+                    isUser
+                      ? 'bg-white text-slate-800 rounded-bl-xs border border-slate-200'
+                      : 'bg-emerald-600 text-white rounded-br-xs'
+                  }`}
+                >
+                  {/* WhatsApp Audio & Voice Note Player */}
+                  {isAudio ? (
+                    <div className="space-y-2 min-w-[240px] max-w-sm">
+                      {/* Header Badge */}
+                      <div
+                        className={`flex items-center justify-between pb-1.5 border-b text-[10px] font-bold ${
+                          isUser
+                            ? 'border-slate-100 text-slate-600'
+                            : 'border-emerald-500/40 text-emerald-100'
+                        }`}
+                      >
+                        <span className="flex items-center gap-1">
+                          <Mic className="w-3.5 h-3.5 text-emerald-500" /> Nota de Voz WhatsApp
+                        </span>
+                        <span
+                          className={`text-[9px] px-1.5 py-0.2 rounded font-semibold ${
+                            isUser
+                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                              : 'bg-emerald-700/60 text-emerald-100'
                           }`}
                         >
-                          {audioSpeed}
-                        </button>
+                          Whisper AI
+                        </span>
                       </div>
-                    </div>
-                  </div>
 
-                  {/* Transcribed Text Container */}
-                  {cleanTranscription && (
-                    <div
-                      className={`p-2.5 rounded-xl text-xs leading-relaxed border ${
-                        isUser
-                          ? 'bg-slate-50 border-slate-200/80 text-slate-800'
-                          : 'bg-emerald-700/50 border-emerald-500/40 text-emerald-50'
-                      }`}
-                    >
-                      <p className="font-semibold text-[10px] uppercase tracking-wider mb-0.5 opacity-75">
-                        Transcripción:
-                      </p>
-                      <p className="italic font-normal">"{cleanTranscription}"</p>
+                      {/* Waveform Player */}
+                      <div className="flex items-center gap-3 py-1">
+                        <button
+                          type="button"
+                          onClick={() => toggleAudio(index)}
+                          className={`w-9 h-9 rounded-full flex items-center justify-center transition-all cursor-pointer shadow-xs flex-shrink-0 ${
+                            isUser
+                              ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                              : 'bg-white text-emerald-700 hover:bg-emerald-50'
+                          }`}
+                        >
+                          {playingAudioId === index ? (
+                            <Pause className="w-4 h-4" />
+                          ) : (
+                            <Play className="w-4 h-4 ml-0.5" />
+                          )}
+                        </button>
+
+                        <div className="flex-1 space-y-1">
+                          <div className="flex items-center gap-0.5 h-6">
+                            {[40, 65, 30, 85, 50, 95, 70, 35, 60, 100, 45, 80, 30, 65, 90, 40].map(
+                              (h, i) => (
+                                <span
+                                  key={i}
+                                  className={`w-1 rounded-full transition-all ${
+                                    isUser
+                                      ? playingAudioId === index && i < 10
+                                        ? 'bg-emerald-600'
+                                        : 'bg-slate-300'
+                                      : playingAudioId === index && i < 10
+                                      ? 'bg-white'
+                                      : 'bg-emerald-300/60'
+                                  }`}
+                                  style={{ height: `${h}%` }}
+                                />
+                              )
+                            )}
+                          </div>
+                          <div className="flex items-center justify-between text-[10px] opacity-85">
+                            <span className="font-mono">0:14</span>
+                            <button
+                              type="button"
+                              onClick={cycleSpeed}
+                              className={`font-bold px-1 rounded hover:underline cursor-pointer ${
+                                isUser ? 'bg-slate-100 text-slate-700' : 'bg-emerald-700/50 text-white'
+                              }`}
+                            >
+                              {audioSpeed}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Transcribed Text Container */}
+                      {cleanTranscription && (
+                        <div
+                          className={`p-2.5 rounded-xl text-xs leading-relaxed border ${
+                            isUser
+                              ? 'bg-slate-50 border-slate-200/80 text-slate-800'
+                              : 'bg-emerald-700/50 border-emerald-500/40 text-emerald-50'
+                          }`}
+                        >
+                          <p className="font-semibold text-[10px] uppercase tracking-wider mb-0.5 opacity-75">
+                            Transcripción:
+                          </p>
+                          <p className="italic font-normal">"{cleanTranscription}"</p>
+                        </div>
+                      )}
                     </div>
+                  ) : (
+                    <p className="whitespace-pre-wrap leading-relaxed">{contentStr}</p>
                   )}
+
+                  {/* Exact Message Timestamp (Hour & Minute in Bogota Time) */}
+                  <div
+                    className={`flex items-center justify-end gap-1 mt-1.5 text-[10px] ${
+                      isUser ? 'text-slate-400' : 'text-emerald-100'
+                    }`}
+                  >
+                    <span className="font-medium">{messageTime}</span>
+                    {!isUser && <CheckCheck className="w-3.5 h-3.5 text-emerald-200" />}
+                  </div>
                 </div>
-              ) : (
-                <p className="whitespace-pre-wrap leading-relaxed">{contentStr}</p>
-              )}
 
-              {/* Exact Message Timestamp (Hour & Minute in Bogota Time) */}
-              <div
-                className={`flex items-center justify-end gap-1 mt-1.5 text-[10px] ${
-                  isUser ? 'text-slate-400' : isTemplate ? 'text-emerald-700' : 'text-emerald-100'
-                }`}
-              >
-                <span className="font-medium">{messageTime}</span>
-                {!isUser && <CheckCheck className="w-3.5 h-3.5 text-emerald-200" />}
-              </div>
-            </div>
-
-            {!isUser && (
-              <div className="w-7 h-7 rounded-full bg-emerald-700 text-white flex items-center justify-center flex-shrink-0 mb-1 border border-emerald-600 text-xs font-semibold">
-                <Bot className="w-3.5 h-3.5" />
+                {!isUser && (
+                  <div className="w-7 h-7 rounded-full bg-emerald-700 text-white flex items-center justify-center flex-shrink-0 mb-1 border border-emerald-600 text-xs font-semibold">
+                    <Bot className="w-3.5 h-3.5" />
+                  </div>
+                )}
               </div>
             )}
-          </div>
+          </React.Fragment>
         );
       })}
 
