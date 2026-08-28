@@ -11,7 +11,9 @@ import {
   Bot,
   UserCheck,
   Zap,
-  Image as ImageIcon,
+  Flame,
+  Clock,
+  Calendar,
 } from 'lucide-react';
 
 interface MessageComposerProps {
@@ -19,37 +21,44 @@ interface MessageComposerProps {
   sending: boolean;
   isHumanMode: boolean;
   onActivateHumanMode: () => void;
+  clientName?: string | null;
 }
 
-const QUICK_COMMANDS = [
+export const QUICK_COMMANDS = [
+  {
+    cmd: '/contacto',
+    title: '🔥 Contacto Inicial Meta (Ecosistema)',
+    category: 'meta',
+    text: 'Hola {{nombre}}, veo que tienes interés en el Ecosistema Inteligente, a continuación te proporcionamos los enlaces con la información del sistema, así: Así se verá tu negocio en la Web: https://beautysyncpro.appteso.cloud/shop Aquí puedes probar el Agendamiento: https://beautysyncpro.appteso.cloud/agendar Aquí puedes Validar como se Paga el Sistema:https://tienda.tesoconsulting.co/beautysync-pro 🤩 Déjanos saber en que momento tienes disponibilidad para atender una llamada 📱 Asesor personalizado: 3053668614 (Escribe o llama) ¡Pronto te Contactaremos! 📲',
+  },
+  {
+    cmd: '/reactivar',
+    title: '⚡ Reactivación / Remarketing (10% Descuento)',
+    category: 'meta',
+    text: 'Hola {{nombre}}, Entiendo que puedes estar ocupado 🙌 Te dejo nuevamente la información para que la revises con calma. Tenemos disponibilidad y un beneficio del 10% si confirmas en las próximas 24 horas. https://www.tiktok.com/@tesoconsulting1/video/7661861677360499975?is_from_webapp=1&sender_device=pc',
+  },
+  {
+    cmd: '/cita',
+    title: '📅 Recordatorio Cita Odoo',
+    category: 'odoo',
+    text: '¡Hola {{nombre}}! Te recordamos tu cita agendada en Odoo. Por favor confírmanos tu asistencia respondiendo a este mensaje. ¡Te esperamos!',
+  },
   {
     cmd: '/saludo',
-    title: 'Saludo de Bienvenida',
-    text: '¡Hola! Qué gusto saludarte. Bienvenido/a a nuestro centro. ¿En qué servicio estás interesado el día de hoy?',
+    title: '👋 Saludo de Bienvenida',
+    category: 'general',
+    text: '¡Hola {{nombre}}! Qué gusto saludarte. Bienvenido/a a nuestro centro. ¿En qué servicio estás interesado el día de hoy?',
   },
   {
     cmd: '/precios',
-    title: 'Lista de Precios y Servicios',
+    title: '💈 Lista de Precios y Servicios',
+    category: 'general',
     text: 'Nuestros servicios destacados son:\n💈 Corte Clásico: $25.000\n✂️ Perfilado de Barba Spa: $18.000\n✨ Limpieza Facial Profunda: $45.000\n🧖 Combo Completo Relax: $75.000\n\n¿Te gustaría apartar tu turno?',
   },
   {
-    cmd: '/horarios',
-    title: 'Horarios de Atención',
-    text: 'Atendemos de Lunes a Sábado de 8:00 AM a 7:30 PM, y Domingos de 9:00 AM a 3:00 PM.',
-  },
-  {
-    cmd: '/ubicacion',
-    title: 'Dirección y Ubicación',
-    text: 'Estamos ubicados en la Calle 11 # 12-15 (Barrio Centro). Contamos con parqueadero para clientes.',
-  },
-  {
-    cmd: '/confirmar',
-    title: 'Confirmación de Cita',
-    text: '¡Perfecto! Tu cita ha quedado registrada con éxito en nuestro sistema de Odoo. Te recomendamos llegar 10 minutos antes para tu preparación.',
-  },
-  {
     cmd: '/banco',
-    title: 'Datos de Pago / Transferencia',
+    title: '💳 Datos de Pago / Transferencia',
+    category: 'general',
     text: 'Para asegurar tu turno puedes realizar el anticipo a nuestra cuenta:\n• Nequi / Daviplata: 312 789 9824\n• Bancolombia Ahorros: 123-456789-01\nPor favor envíanos el comprobante por este medio.',
   },
 ];
@@ -59,12 +68,19 @@ export default function MessageComposer({
   sending,
   isHumanMode,
   onActivateHumanMode,
+  clientName,
 }: MessageComposerProps) {
   const [message, setMessage] = useState('');
   const [showTemplates, setShowTemplates] = useState(false);
   const [slashSearch, setSlashSearch] = useState<string | null>(null);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const formattedName = clientName && clientName.trim() ? clientName.trim().split(' ')[0] : 'estimado cliente';
+
+  const prepareText = (rawText: string) => {
+    return rawText.replace(/\{\{nombre\}\}/g, formattedName).replace(/\{nombre\}/g, formattedName);
+  };
 
   const filteredCommands =
     slashSearch !== null
@@ -95,10 +111,19 @@ export default function MessageComposer({
   };
 
   const insertCommand = (cmdText: string) => {
-    setMessage(cmdText);
+    const processed = prepareText(cmdText);
+    setMessage(processed);
     setSlashSearch(null);
     setShowTemplates(false);
     textareaRef.current?.focus();
+  };
+
+  const handleSendDirect = (cmdText: string) => {
+    if (!isHumanMode) {
+      onActivateHumanMode();
+    }
+    const processed = prepareText(cmdText);
+    onSendMessage(processed);
   };
 
   const handleSubmit = (e?: FormEvent) => {
@@ -144,7 +169,41 @@ export default function MessageComposer({
 
   return (
     <div className="bg-white border-t border-slate-200 p-3 select-none flex-shrink-0 relative">
-      {/* Slash Command Autocomplete */}
+      {/* Quick Meta Template Chips Bar */}
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-none">
+        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1 flex-shrink-0">
+          <Zap className="w-3 h-3 text-amber-500" /> Plantillas Meta:
+        </span>
+        <button
+          type="button"
+          onClick={() => insertCommand(QUICK_COMMANDS[0].text)}
+          className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[11px] font-semibold rounded-lg border border-emerald-200 flex items-center gap-1 transition-colors whitespace-nowrap cursor-pointer shadow-2xs"
+          title="Cargar plantilla de Contacto Inicial Meta en el editor"
+        >
+          <Flame className="w-3 h-3 text-emerald-600" />
+          <span>Contacto Inicial</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => insertCommand(QUICK_COMMANDS[1].text)}
+          className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-800 text-[11px] font-semibold rounded-lg border border-blue-200 flex items-center gap-1 transition-colors whitespace-nowrap cursor-pointer shadow-2xs"
+          title="Cargar plantilla de Reactivación / Remarketing con 10% Descuento"
+        >
+          <Clock className="w-3 h-3 text-blue-600" />
+          <span>Reactivación 24h</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => insertCommand(QUICK_COMMANDS[2].text)}
+          className="px-2.5 py-1 bg-purple-50 hover:bg-purple-100 text-purple-800 text-[11px] font-semibold rounded-lg border border-purple-200 flex items-center gap-1 transition-colors whitespace-nowrap cursor-pointer shadow-2xs"
+          title="Cargar recordatorio de Cita Odoo"
+        >
+          <Calendar className="w-3 h-3 text-purple-600" />
+          <span>Recordatorio Odoo</span>
+        </button>
+      </div>
+
+      {/* Slash Command Autocomplete Popover */}
       {slashSearch !== null && filteredCommands.length > 0 && (
         <div className="absolute bottom-full left-4 right-4 mb-2 bg-white border border-slate-200 rounded-2xl shadow-xl z-30 max-h-60 overflow-y-auto p-1.5 animate-in fade-in slide-in-from-bottom-2 duration-150">
           <div className="px-3 py-1.5 border-b border-slate-100 text-[11px] font-bold text-slate-400 flex items-center justify-between">
@@ -170,7 +229,9 @@ export default function MessageComposer({
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="text-xs font-semibold text-slate-800 leading-tight">{cmd.title}</p>
-                  <p className="text-[11px] text-slate-500 line-clamp-1 mt-0.5">{cmd.text}</p>
+                  <p className="text-[11px] text-slate-500 line-clamp-1 mt-0.5">
+                    {prepareText(cmd.text)}
+                  </p>
                 </div>
               </button>
             ))}
@@ -183,7 +244,7 @@ export default function MessageComposer({
         <div className="mb-2.5 p-2.5 bg-slate-50 border border-slate-200 rounded-xl shadow-xs animate-in fade-in slide-in-from-bottom-2 duration-150">
           <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-slate-200">
             <span className="text-xs font-bold text-slate-700 flex items-center gap-1">
-              <BookOpen className="w-3.5 h-3.5 text-blue-600" /> Plantillas Predefinidas
+              <BookOpen className="w-3.5 h-3.5 text-blue-600" /> Plantillas Oficiales Meta WhatsApp & Odoo
             </span>
             <button
               onClick={() => setShowTemplates(false)}
@@ -207,7 +268,7 @@ export default function MessageComposer({
                   </span>
                 </div>
                 <p className="text-[10px] text-slate-500 line-clamp-2 leading-relaxed">
-                  {tmpl.text}
+                  {prepareText(tmpl.text)}
                 </p>
               </button>
             ))}
@@ -250,69 +311,57 @@ export default function MessageComposer({
                 : 'Activa Modo Humano para escribir manualmente...'
             }
             rows={2}
-            className="w-full bg-slate-50 disabled:bg-slate-100 border border-slate-200 rounded-xl p-3 text-xs md:text-sm text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 resize-none transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+            className={`w-full p-2.5 rounded-xl border text-xs md:text-sm focus:outline-none resize-none transition-all placeholder:text-slate-400 ${
+              isHumanMode
+                ? 'bg-slate-50 border-slate-200 text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500'
+                : 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed'
+            }`}
           />
         </div>
 
-        {/* Bottom Toolbar */}
+        {/* Toolbar & Send Button */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1">
             <button
               type="button"
               onClick={() => setShowTemplates(!showTemplates)}
-              className="px-2.5 py-1.5 text-slate-600 hover:text-blue-700 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer flex items-center gap-1 text-xs font-semibold"
+              className={`px-2.5 py-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                showTemplates
+                  ? 'bg-blue-600 text-white border-blue-600'
+                  : 'bg-slate-100 hover:bg-slate-200 text-slate-600 border-slate-200'
+              }`}
               title="Ver plantillas rápidas"
             >
-              <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
               <span>Plantillas (/)</span>
             </button>
 
             <button
               type="button"
-              className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
-              title="Adjuntar archivo"
+              disabled={!isHumanMode}
+              className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer disabled:opacity-40"
+              title="Adjuntar archivo o imagen"
             >
               <Paperclip className="w-4 h-4" />
             </button>
 
             <button
               type="button"
-              className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
-              title="Insertar imagen"
-            >
-              <ImageIcon className="w-4 h-4" />
-            </button>
-
-            <button
-              type="button"
-              className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+              disabled={!isHumanMode}
+              className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer disabled:opacity-40"
               title="Insertar emoji"
             >
               <Smile className="w-4 h-4" />
-            </button>
-
-            <button
-              type="button"
-              className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
-              title="Grabar nota de voz"
-            >
-              <Mic className="w-4 h-4" />
             </button>
           </div>
 
           <button
             type="submit"
-            disabled={!isHumanMode || !message.trim() || sending}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-200 disabled:text-slate-400 text-white text-xs font-bold rounded-xl transition-all shadow-xs flex items-center gap-1.5 cursor-pointer disabled:cursor-not-allowed"
+            disabled={!message.trim() || sending || !isHumanMode}
+            className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-200 disabled:text-slate-400 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer disabled:cursor-not-allowed"
           >
-            {sending ? (
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            ) : (
-              <>
-                <span>Enviar</span>
-                <Send className="w-3.5 h-3.5" />
-              </>
-            )}
+            <span>{sending ? 'Enviando...' : 'Enviar'}</span>
+            <Send className="w-3.5 h-3.5" />
           </button>
         </div>
       </form>

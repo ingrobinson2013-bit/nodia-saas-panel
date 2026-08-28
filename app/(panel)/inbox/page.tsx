@@ -11,6 +11,7 @@ import ChatFeed from '@/components/chat/ChatFeed';
 import TagPipelineBar from '@/components/chat/TagPipelineBar';
 import MessageComposer from '@/components/chat/MessageComposer';
 import CustomerCrmPanel from '@/components/crm/CustomerCrmPanel';
+import { getClientName } from '@/lib/inbox-utils';
 
 export default function InboxPage() {
   const [tenantId, setTenantId] = useState<string>('');
@@ -250,6 +251,7 @@ export default function InboxPage() {
               sending={sendingMsg}
               isHumanMode={isHumanMode}
               onActivateHumanMode={() => toggleBotMode(activeSession)}
+              clientName={getClientName(activeSession)}
             />
           </>
         ) : (
