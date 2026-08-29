@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from "next/server";
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY!;
 const GRAPH_URL = "https://graph.facebook.com/v21.0";
+const BEAUTYSYNC_DEFAULT_MEDIA_ID = "1514709553317181";
 
 export async function POST(req: NextRequest) {
   let body: any;
@@ -70,10 +71,20 @@ export async function POST(req: NextRequest) {
       langCode = "es_CO";
       components = [
         {
+          type: "header",
+          parameters: [
+            {
+              type: "image",
+              image: { id: BEAUTYSYNC_DEFAULT_MEDIA_ID },
+            },
+          ],
+        },
+        {
           type: "body",
           parameters: [
             {
               type: "text",
+              parameter_name: "nombre",
               text: formattedFirstName,
             },
           ],
