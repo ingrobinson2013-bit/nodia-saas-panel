@@ -7,6 +7,8 @@ import {
   Sparkles,
   User,
   Bot,
+  UserCheck,
+  Headphones,
   Play,
   Pause,
   Check,
@@ -124,6 +126,8 @@ export default function ChatFeed({
       {messages.map((msg, index) => {
         const isUser = msg.role === 'user';
         const contentStr = msg.content || '';
+        const isAgent = msg.role === 'agent' || contentStr.startsWith('[Asesor]') || contentStr.toLowerCase().startsWith('[humano]');
+        const isBot = !isUser && !isAgent;
 
         // Check if date changed from previous message
         const currentMsgDate = msg.timestamp ? bogotaDateStr(new Date(msg.timestamp)) : '';
@@ -219,10 +223,35 @@ export default function ChatFeed({
                 <div
                   className={`max-w-[88%] sm:max-w-[75%] rounded-2xl px-4 py-3 text-xs md:text-sm shadow-xs transition-all ${
                     isUser
-                      ? 'bg-white text-slate-800 rounded-bl-xs border border-slate-200'
-                      : 'bg-emerald-600 text-white rounded-br-xs'
+                      ? 'bg-white text-slate-800 rounded-bl-xs border border-slate-200 shadow-2xs'
+                      : isAgent
+                      ? 'bg-blue-600 text-white rounded-br-xs border border-blue-500 shadow-xs'
+                      : 'bg-emerald-600 text-white rounded-br-xs border border-emerald-500 shadow-xs'
                   }`}
                 >
+                  {/* Sender Header Badge */}
+                  {!isUser && (
+                    <div
+                      className={`flex items-center gap-1.5 mb-1.5 pb-1 border-b text-[10px] font-bold tracking-wide ${
+                        isAgent
+                          ? 'border-blue-500/40 text-blue-100'
+                          : 'border-emerald-500/40 text-emerald-100'
+                      }`}
+                    >
+                      {isAgent ? (
+                        <>
+                          <UserCheck className="w-3 h-3 text-blue-200" />
+                          <span>Asesor Humano</span>
+                        </>
+                      ) : (
+                        <>
+                          <Bot className="w-3 h-3 text-emerald-200" />
+                          <span>IA BeautySync</span>
+                        </>
+                      )}
+                    </div>
+                  )}
+
                   {/* WhatsApp Audio & Voice Note Player */}
                   {isAudio ? (
                     <div className="space-y-2 min-w-[240px] max-w-sm">
@@ -231,6 +260,8 @@ export default function ChatFeed({
                         className={`flex items-center justify-between pb-1.5 border-b text-[10px] font-bold ${
                           isUser
                             ? 'border-slate-100 text-slate-600'
+                            : isAgent
+                            ? 'border-blue-500/40 text-blue-100'
                             : 'border-emerald-500/40 text-emerald-100'
                         }`}
                       >
@@ -241,6 +272,8 @@ export default function ChatFeed({
                           className={`text-[9px] px-1.5 py-0.2 rounded font-semibold ${
                             isUser
                               ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                              : isAgent
+                              ? 'bg-blue-700/60 text-blue-100'
                               : 'bg-emerald-700/60 text-emerald-100'
                           }`}
                         >
@@ -256,7 +289,7 @@ export default function ChatFeed({
                           className={`w-9 h-9 rounded-full flex items-center justify-center transition-all cursor-pointer shadow-xs flex-shrink-0 ${
                             isUser
                               ? 'bg-emerald-600 text-white hover:bg-emerald-700'
-                              : 'bg-white text-emerald-700 hover:bg-emerald-50'
+                              : 'bg-white text-slate-800 hover:bg-slate-50'
                           }`}
                         >
                           {playingAudioId === index ? (
@@ -277,6 +310,10 @@ export default function ChatFeed({
                                       ? playingAudioId === index && i < 10
                                         ? 'bg-emerald-600'
                                         : 'bg-slate-300'
+                                      : isAgent
+                                      ? playingAudioId === index && i < 10
+                                        ? 'bg-white'
+                                        : 'bg-blue-300/60'
                                       : playingAudioId === index && i < 10
                                       ? 'bg-white'
                                       : 'bg-emerald-300/60'
@@ -292,7 +329,11 @@ export default function ChatFeed({
                               type="button"
                               onClick={cycleSpeed}
                               className={`font-bold px-1 rounded hover:underline cursor-pointer ${
-                                isUser ? 'bg-slate-100 text-slate-700' : 'bg-emerald-700/50 text-white'
+                                isUser
+                                  ? 'bg-slate-100 text-slate-700'
+                                  : isAgent
+                                  ? 'bg-blue-700/50 text-white'
+                                  : 'bg-emerald-700/50 text-white'
                               }`}
                             >
                               {audioSpeed}
@@ -307,6 +348,8 @@ export default function ChatFeed({
                           className={`p-2.5 rounded-xl text-xs leading-relaxed border ${
                             isUser
                               ? 'bg-slate-50 border-slate-200/80 text-slate-800'
+                              : isAgent
+                              ? 'bg-blue-700/50 border-blue-500/40 text-blue-50'
                               : 'bg-emerald-700/50 border-emerald-500/40 text-emerald-50'
                           }`}
                         >
@@ -324,7 +367,7 @@ export default function ChatFeed({
                   {/* Exact Message Timestamp & Delivery Status */}
                   <div
                     className={`flex items-center justify-end gap-1.5 mt-1.5 text-[10px] ${
-                      isUser ? 'text-slate-400' : 'text-emerald-100'
+                      isUser ? 'text-slate-400' : isAgent ? 'text-blue-100' : 'text-emerald-100'
                     }`}
                   >
                     <span className="font-medium">{messageTime}</span>
@@ -341,7 +384,7 @@ export default function ChatFeed({
                           </span>
                         ) : msg.status === 'sending' ? (
                           <span title="Enviando a Meta...">
-                            <Clock className="w-3 h-3 text-emerald-200 animate-spin" />
+                            <Clock className="w-3 h-3 text-white/80 animate-spin" />
                           </span>
                         ) : msg.status === 'read' ? (
                           <span title="Leído por el cliente">
@@ -349,11 +392,11 @@ export default function ChatFeed({
                           </span>
                         ) : msg.status === 'sent' ? (
                           <span title="Enviado a Meta">
-                            <Check className="w-3.5 h-3.5 text-emerald-200" />
+                            <Check className="w-3.5 h-3.5 text-white/80" />
                           </span>
                         ) : (
                           <span title="Entregado">
-                            <CheckCheck className="w-3.5 h-3.5 text-emerald-200" />
+                            <CheckCheck className="w-3.5 h-3.5 text-white/90" />
                           </span>
                         )}
                       </>
@@ -362,8 +405,15 @@ export default function ChatFeed({
                 </div>
 
                 {!isUser && (
-                  <div className="w-7 h-7 rounded-full bg-emerald-700 text-white flex items-center justify-center flex-shrink-0 mb-1 border border-emerald-600 text-xs font-semibold">
-                    <Bot className="w-3.5 h-3.5" />
+                  <div
+                    className={`w-7 h-7 rounded-full text-white flex items-center justify-center flex-shrink-0 mb-1 text-xs font-semibold shadow-xs border ${
+                      isAgent
+                        ? 'bg-blue-600 border-blue-500'
+                        : 'bg-emerald-600 border-emerald-500'
+                    }`}
+                    title={isAgent ? 'Mensaje enviado por Asesor Humano' : 'Mensaje enviado por Bot IA'}
+                  >
+                    {isAgent ? <UserCheck className="w-3.5 h-3.5" /> : <Bot className="w-3.5 h-3.5" />}
                   </div>
                 )}
               </div>
