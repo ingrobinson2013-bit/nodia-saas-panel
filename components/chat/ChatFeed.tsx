@@ -9,7 +9,9 @@ import {
   Bot,
   Play,
   Pause,
+  Check,
   CheckCheck,
+  AlertCircle,
   X,
   Mic,
   AlertTriangle,
@@ -319,14 +321,43 @@ export default function ChatFeed({
                     <p className="whitespace-pre-wrap leading-relaxed">{contentStr}</p>
                   )}
 
-                  {/* Exact Message Timestamp (Hour & Minute in Bogota Time) */}
+                  {/* Exact Message Timestamp & Delivery Status */}
                   <div
-                    className={`flex items-center justify-end gap-1 mt-1.5 text-[10px] ${
+                    className={`flex items-center justify-end gap-1.5 mt-1.5 text-[10px] ${
                       isUser ? 'text-slate-400' : 'text-emerald-100'
                     }`}
                   >
                     <span className="font-medium">{messageTime}</span>
-                    {!isUser && <CheckCheck className="w-3.5 h-3.5 text-emerald-200" />}
+
+                    {!isUser && (
+                      <>
+                        {msg.status === 'failed' || msg.status === 'error_24h' || msg.error ? (
+                          <span
+                            className="flex items-center gap-1 bg-rose-500/25 text-rose-200 px-1.5 py-0.5 rounded font-semibold text-[9px]"
+                            title={msg.error || 'Mensaje no entregado por Meta (Ventana 24h cerrada)'}
+                          >
+                            <AlertCircle className="w-3 h-3 text-rose-300 animate-pulse" />
+                            <span>No entregado (24h)</span>
+                          </span>
+                        ) : msg.status === 'sending' ? (
+                          <span title="Enviando a Meta...">
+                            <Clock className="w-3 h-3 text-emerald-200 animate-spin" />
+                          </span>
+                        ) : msg.status === 'read' ? (
+                          <span title="Leído por el cliente">
+                            <CheckCheck className="w-3.5 h-3.5 text-sky-300" />
+                          </span>
+                        ) : msg.status === 'sent' ? (
+                          <span title="Enviado a Meta">
+                            <Check className="w-3.5 h-3.5 text-emerald-200" />
+                          </span>
+                        ) : (
+                          <span title="Entregado">
+                            <CheckCheck className="w-3.5 h-3.5 text-emerald-200" />
+                          </span>
+                        )}
+                      </>
+                    )}
                   </div>
                 </div>
 

@@ -20,6 +20,8 @@ export interface Message {
   content: string;
   timestamp?: string;
   isTemplate?: boolean;
+  status?: 'sending' | 'sent' | 'delivered' | 'read' | 'failed' | 'error_24h';
+  error?: string;
 }
 
 export type InternalNote = {

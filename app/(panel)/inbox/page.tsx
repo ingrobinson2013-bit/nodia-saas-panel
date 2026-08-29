@@ -139,6 +139,19 @@ export default function InboxPage() {
     setSendingMsg(true);
     setMetaErrorMessage(null);
 
+    const optimisticMsg: Message = {
+      role: 'agent',
+      content: text.trim(),
+      timestamp: new Date().toISOString(),
+      status: 'sending',
+    };
+
+    const initialHistory = [...(activeSession.history || []), optimisticMsg];
+    setActiveSession({ ...activeSession, history: initialHistory });
+    setSessions((prev) =>
+      prev.map((s) => (s.id === activeSession.id ? { ...s, history: initialHistory } : s))
+    );
+
     try {
       const res = await fetch('/api/send-message', {
         method: 'POST',
@@ -154,6 +167,16 @@ export default function InboxPage() {
       const data = await res.json();
 
       if (!res.ok || data.error) {
+        const failedHistory = initialHistory.map((m, idx) =>
+          idx === initialHistory.length - 1
+            ? { ...m, status: (data.is_24h_expired ? 'error_24h' : 'failed') as any, error: data.error }
+            : m
+        );
+        setActiveSession((prev) => (prev ? { ...prev, history: failedHistory } : null));
+        setSessions((prev) =>
+          prev.map((s) => (s.id === activeSession.id ? { ...s, history: failedHistory } : s))
+        );
+
         if (data.is_24h_expired) {
           setMetaErrorMessage(
             '⚠️ Meta rechazó el mensaje: La ventana de 24 horas está cerrada porque el cliente no ha escrito recientemente. Debes enviar una Plantilla Oficial de Meta para reabrir la conversación.'
