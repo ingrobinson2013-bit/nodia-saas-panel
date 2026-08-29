@@ -22,6 +22,7 @@ export default function InboxPage() {
   const [showCrmPanel, setShowCrmPanel] = useState(true);
   const [mobileView, setMobileView] = useState<'list' | 'chat' | 'crm'>('list');
   const [selectedTags, setSelectedTags] = useState<string[]>(['cita_confirmada']);
+  const [metaErrorMessage, setMetaErrorMessage] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Fetch sessions from Supabase
@@ -114,6 +115,7 @@ export default function InboxPage() {
   // Select session with mobile view switch
   const handleSelectSession = (session: ChatSession) => {
     setActiveSession(session);
+    setMetaErrorMessage(null);
     setMobileView('chat');
   };
 
@@ -131,34 +133,41 @@ export default function InboxPage() {
       .eq('id', session.id);
   };
 
-  // Send WhatsApp message
+  // Send WhatsApp message through Meta API
   const handleSendMessage = async (text: string) => {
-    if (!activeSession || !text.trim() || sendingMsg) return;
+    if (!activeSession || !text.trim() || sendingMsg || !tenantId) return;
     setSendingMsg(true);
-
-    const optimisticMsg: Message = {
-      role: 'agent',
-      content: text.trim(),
-      timestamp: new Date().toISOString(),
-    };
-
-    const newHistory = [...(activeSession.history || []), optimisticMsg];
-
-    setActiveSession({ ...activeSession, history: newHistory });
-    setSessions((prev) =>
-      prev.map((s) => (s.id === activeSession.id ? { ...s, history: newHistory } : s))
-    );
+    setMetaErrorMessage(null);
 
     try {
-      await supabase
-        .from('chat_sessions')
-        .update({
-          history: newHistory,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', activeSession.id);
-    } catch (err) {
+      const res = await fetch('/api/send-message', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tenant_id: tenantId,
+          session_id: activeSession.id,
+          wa_to: activeSession.wa_from,
+          message: text.trim(),
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || data.error) {
+        if (data.is_24h_expired) {
+          setMetaErrorMessage(
+            '⚠️ Meta rechazó el mensaje: La ventana de 24 horas está cerrada porque el cliente no ha escrito recientemente. Debes enviar una Plantilla Oficial de Meta para reabrir la conversación.'
+          );
+        } else {
+          setMetaErrorMessage(`Error de Meta WhatsApp (${data.code || 'API'}): ${data.error}`);
+        }
+        return;
+      }
+
+      await fetchSessions(tenantId, true);
+    } catch (err: any) {
       console.error('Error sending message:', err);
+      setMetaErrorMessage(`Error de conexión: ${err.message}`);
     } finally {
       setSendingMsg(false);
     }
@@ -184,19 +193,9 @@ export default function InboxPage() {
     }
   };
 
-  if (loading && sessions.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-slate-50">
-        <div className="flex flex-col items-center gap-3 bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
-          <div className="w-10 h-10 border-3 border-blue-600 border-t-transparent rounded-full animate-spin" />
-          <p className="text-slate-600 text-xs font-semibold">Cargando NODIA Chat Pro...</p>
-        </div>
-      </div>
-    );
-  }
-
   const handleSendOfficialTemplate = async (templateName: string) => {
     if (!activeSession || !tenantId) return;
+    setMetaErrorMessage(null);
 
     try {
       const res = await fetch('/api/send-template', {
@@ -213,14 +212,14 @@ export default function InboxPage() {
 
       const data = await res.json();
       if (!res.ok || data.error) {
-        alert(`Error de Meta WhatsApp: ${data.error || 'No se pudo enviar la plantilla'}`);
+        setMetaErrorMessage(`Error de Meta WhatsApp: ${data.error || 'No se pudo enviar la plantilla'}`);
         return;
       }
 
       await fetchSessions(tenantId, true);
     } catch (err: any) {
       console.error('Error sending official template:', err);
-      alert(`Error de conexión al enviar plantilla: ${err.message}`);
+      setMetaErrorMessage(`Error de conexión al enviar plantilla: ${err.message}`);
     }
   };
 
@@ -268,6 +267,9 @@ export default function InboxPage() {
               messages={messages}
               isHumanMode={isHumanMode}
               messagesEndRef={messagesEndRef}
+              onSendOfficialTemplate={handleSendOfficialTemplate}
+              metaErrorMessage={metaErrorMessage}
+              onClearMetaError={() => setMetaErrorMessage(null)}
             />
 
             <TagPipelineBar

@@ -12,6 +12,9 @@ import {
   CheckCheck,
   X,
   Mic,
+  AlertTriangle,
+  Flame,
+  Clock,
 } from 'lucide-react';
 import { formatTimeBogota, formatDateLabel, bogotaDateStr } from '@/lib/inbox-utils';
 
@@ -19,12 +22,18 @@ interface ChatFeedProps {
   messages: Message[];
   isHumanMode: boolean;
   messagesEndRef: React.RefObject<HTMLDivElement | null>;
+  onSendOfficialTemplate?: (templateName: string) => Promise<void>;
+  metaErrorMessage?: string | null;
+  onClearMetaError?: () => void;
 }
 
 export default function ChatFeed({
   messages,
   isHumanMode,
   messagesEndRef,
+  onSendOfficialTemplate,
+  metaErrorMessage,
+  onClearMetaError,
 }: ChatFeedProps) {
   const [playingAudioId, setPlayingAudioId] = useState<number | null>(null);
   const [audioSpeed, setAudioSpeed] = useState<'1.0x' | '1.5x' | '2.0x'>('1.0x');
@@ -45,6 +54,13 @@ export default function ChatFeed({
     else setAudioSpeed('1.0x');
   };
 
+  // Check if 24 hours have passed since last user message
+  const userMessages = messages.filter((m) => m.role === 'user');
+  const lastUserMsg = userMessages[userMessages.length - 1];
+  const is24hWindowClosed = lastUserMsg?.timestamp
+    ? Date.now() - new Date(lastUserMsg.timestamp).getTime() > 24 * 60 * 60 * 1000
+    : false;
+
   return (
     <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4">
       {/* Human Takeover Notice Banner */}
@@ -58,6 +74,46 @@ export default function ChatFeed({
             <span className="text-[10px] bg-slate-950/20 px-2 py-0.5 rounded font-mono font-bold">
               MANUAL
             </span>
+          </div>
+        </div>
+      )}
+
+      {/* Meta Error Banner (e.g. 24h Window Rejection) */}
+      {metaErrorMessage && (
+        <div className="sticky top-2 z-20 mx-auto max-w-lg mb-3">
+          <div className="bg-rose-50 border-2 border-rose-300 text-rose-950 p-3.5 rounded-2xl shadow-lg animate-in fade-in slide-in-from-top-2 duration-150 space-y-2">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-center gap-2 text-rose-700 font-bold text-xs">
+                <AlertTriangle className="w-4 h-4 text-rose-600 flex-shrink-0" />
+                <span>⚠️ Error de Entrega Meta WhatsApp</span>
+              </div>
+              {onClearMetaError && (
+                <button
+                  onClick={onClearMetaError}
+                  className="text-rose-400 hover:text-rose-700 p-0.5 cursor-pointer text-xs"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+            <p className="text-xs text-rose-900 leading-relaxed font-medium">
+              {metaErrorMessage}
+            </p>
+            {onSendOfficialTemplate && (
+              <div className="pt-2 border-t border-rose-200 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (onClearMetaError) onClearMetaError();
+                    onSendOfficialTemplate('contacto_inicial_beautysyncpro');
+                  }}
+                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs flex items-center gap-1.5 cursor-pointer transition-colors"
+                >
+                  <Flame className="w-3.5 h-3.5 text-amber-300" />
+                  <span>🚀 Reabrir con Plantilla Oficial Meta</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -284,6 +340,35 @@ export default function ChatFeed({
           </React.Fragment>
         );
       })}
+
+      {/* 24-Hour Meta Policy Notice Banner */}
+      {is24hWindowClosed && (
+        <div className="mx-auto max-w-lg my-3 p-3 bg-amber-50 border border-amber-200 rounded-2xl shadow-xs text-xs text-amber-900 space-y-2 animate-in fade-in duration-150">
+          <div className="flex items-start gap-2.5">
+            <div className="w-7 h-7 rounded-full bg-amber-200 text-amber-900 flex items-center justify-center flex-shrink-0 font-bold text-xs mt-0.5">
+              24h
+            </div>
+            <div className="flex-1">
+              <p className="font-bold text-slate-900">Ventana de 24 Horas de Meta Inactiva</p>
+              <p className="text-[11px] text-slate-600 mt-0.5 leading-relaxed">
+                Han pasado más de 24 horas desde la última respuesta del cliente. Meta no permite enviar mensajes de texto libres. Para reanudar el contacto, envía una <strong>Plantilla Oficial de Meta</strong>.
+              </p>
+            </div>
+          </div>
+          {onSendOfficialTemplate && (
+            <div className="flex items-center justify-end gap-2 pt-1.5 border-t border-amber-200/60">
+              <button
+                type="button"
+                onClick={() => onSendOfficialTemplate('contacto_inicial_beautysyncpro')}
+                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <Flame className="w-3.5 h-3.5 text-amber-300" />
+                <span>🚀 Enviar Contacto Inicial Meta</span>
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {lightboxImage && (
         <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
