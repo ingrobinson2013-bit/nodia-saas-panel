@@ -14,10 +14,13 @@ import {
   Flame,
   Clock,
   Calendar,
+  SendHorizontal,
+  CheckCircle,
 } from 'lucide-react';
 
 interface MessageComposerProps {
   onSendMessage: (text: string) => void;
+  onSendOfficialTemplate?: (templateName: string) => Promise<void>;
   sending: boolean;
   isHumanMode: boolean;
   onActivateHumanMode: () => void;
@@ -27,36 +30,42 @@ interface MessageComposerProps {
 export const QUICK_COMMANDS = [
   {
     cmd: '/contacto',
+    templateName: 'contacto_inicial_beautysyncpro',
     title: '🔥 Contacto Inicial Meta (Ecosistema)',
     category: 'meta',
-    text: 'Hola {{nombre}}, veo que tienes interés en el Ecosistema Inteligente, a continuación te proporcionamos los enlaces con la información del sistema, así: Así se verá tu negocio en la Web: https://beautysyncpro.appteso.cloud/shop Aquí puedes probar el Agendamiento: https://beautysyncpro.appteso.cloud/agendar Aquí puedes Validar como se Paga el Sistema:https://tienda.tesoconsulting.co/beautysync-pro 🤩 Déjanos saber en que momento tienes disponibilidad para atender una llamada 📱 Asesor personalizado: 3053668614 (Escribe o llama) ¡Pronto te Contactaremos! 📲',
+    text: 'Hola {{nombre}} 👋\n\nTe escribimos de TESO Consulting con una novedad importante.\n\nLanzamos *BeautySync Pro*: el primer software para barberías y salones que se subsidia con tus compras de insumos.\n\n✅ Agenda inteligente 24/7\n✅ Sitio Web y App de Reservas\n✅ Profesionales Ilimitados\n✅ Facturación electrónica DIAN (Opcional)\n✅ Control de inventario\n✅ Comisiones automatizadas\n\n*Activación con la Compra de tus Insumos de las Marcas Aliadas*\nSin mensualidades fijas. Pagas según tu volumen de Compra.\n\n¿Te interesa info? Responde INFO\nPara no recibir más mensajes responde BAJA',
   },
   {
     cmd: '/reactivar',
+    templateName: 'retoma_pos_electronico',
     title: '⚡ Reactivación / Remarketing (10% Descuento)',
     category: 'meta',
     text: 'Hola {{nombre}}, Entiendo que puedes estar ocupado 🙌 Te dejo nuevamente la información para que la revises con calma. Tenemos disponibilidad y un beneficio del 10% si confirmas en las próximas 24 horas. https://www.tiktok.com/@tesoconsulting1/video/7661861677360499975?is_from_webapp=1&sender_device=pc',
   },
   {
     cmd: '/cita',
+    templateName: 'confirmacon_cita',
     title: '📅 Recordatorio Cita Odoo',
     category: 'odoo',
     text: '¡Hola {{nombre}}! Te recordamos tu cita agendada en Odoo. Por favor confírmanos tu asistencia respondiendo a este mensaje. ¡Te esperamos!',
   },
   {
     cmd: '/saludo',
+    templateName: null,
     title: '👋 Saludo de Bienvenida',
     category: 'general',
     text: '¡Hola {{nombre}}! Qué gusto saludarte. Bienvenido/a a nuestro centro. ¿En qué servicio estás interesado el día de hoy?',
   },
   {
     cmd: '/precios',
+    templateName: null,
     title: '💈 Lista de Precios y Servicios',
     category: 'general',
     text: 'Nuestros servicios destacados son:\n💈 Corte Clásico: $25.000\n✂️ Perfilado de Barba Spa: $18.000\n✨ Limpieza Facial Profunda: $45.000\n🧖 Combo Completo Relax: $75.000\n\n¿Te gustaría apartar tu turno?',
   },
   {
     cmd: '/banco',
+    templateName: null,
     title: '💳 Datos de Pago / Transferencia',
     category: 'general',
     text: 'Para asegurar tu turno puedes realizar el anticipo a nuestra cuenta:\n• Nequi / Daviplata: 312 789 9824\n• Bancolombia Ahorros: 123-456789-01\nPor favor envíanos el comprobante por este medio.',
@@ -65,6 +74,7 @@ export const QUICK_COMMANDS = [
 
 export default function MessageComposer({
   onSendMessage,
+  onSendOfficialTemplate,
   sending,
   isHumanMode,
   onActivateHumanMode,
@@ -74,6 +84,7 @@ export default function MessageComposer({
   const [showTemplates, setShowTemplates] = useState(false);
   const [slashSearch, setSlashSearch] = useState<string | null>(null);
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [sendingTemplate, setSendingTemplate] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const formattedName = clientName && clientName.trim() ? clientName.trim().split(' ')[0] : 'estimado cliente';
@@ -118,17 +129,24 @@ export default function MessageComposer({
     textareaRef.current?.focus();
   };
 
-  const handleSendDirect = (cmdText: string) => {
-    if (!isHumanMode) {
-      onActivateHumanMode();
+  const handleOfficialTemplateClick = async (templateName: string, fallbackText: string) => {
+    if (onSendOfficialTemplate) {
+      setSendingTemplate(true);
+      try {
+        await onSendOfficialTemplate(templateName);
+        setShowTemplates(false);
+        setSlashSearch(null);
+      } finally {
+        setSendingTemplate(false);
+      }
+    } else {
+      insertCommand(fallbackText);
     }
-    const processed = prepareText(cmdText);
-    onSendMessage(processed);
   };
 
   const handleSubmit = (e?: FormEvent) => {
     if (e) e.preventDefault();
-    if (!message.trim() || sending) return;
+    if (!message.trim() || sending || sendingTemplate) return;
     onSendMessage(message.trim());
     setMessage('');
     setShowTemplates(false);
@@ -174,32 +192,41 @@ export default function MessageComposer({
         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1 flex-shrink-0">
           <Zap className="w-3 h-3 text-amber-500" /> Plantillas Meta:
         </span>
+        
+        {/* Contacto Inicial Meta HSM */}
         <button
           type="button"
-          onClick={() => insertCommand(QUICK_COMMANDS[0].text)}
-          className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[11px] font-semibold rounded-lg border border-emerald-200 flex items-center gap-1 transition-colors whitespace-nowrap cursor-pointer shadow-2xs"
-          title="Cargar plantilla de Contacto Inicial Meta en el editor"
+          disabled={sendingTemplate}
+          onClick={() => handleOfficialTemplateClick('contacto_inicial_beautysyncpro', QUICK_COMMANDS[0].text)}
+          className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold rounded-lg border border-emerald-700 flex items-center gap-1.5 transition-all whitespace-nowrap cursor-pointer shadow-xs disabled:opacity-50"
+          title="Enviar plantilla oficial HSM de Contacto Inicial aprobada por Meta"
         >
-          <Flame className="w-3 h-3 text-emerald-600" />
-          <span>Contacto Inicial</span>
+          <Flame className="w-3 h-3 text-amber-300" />
+          <span>{sendingTemplate ? 'Enviando...' : '🚀 Enviar Contacto Inicial Meta'}</span>
         </button>
+
+        {/* Reactivación 24h Meta HSM */}
         <button
           type="button"
-          onClick={() => insertCommand(QUICK_COMMANDS[1].text)}
-          className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-800 text-[11px] font-semibold rounded-lg border border-blue-200 flex items-center gap-1 transition-colors whitespace-nowrap cursor-pointer shadow-2xs"
-          title="Cargar plantilla de Reactivación / Remarketing con 10% Descuento"
+          disabled={sendingTemplate}
+          onClick={() => handleOfficialTemplateClick('retoma_pos_electronico', QUICK_COMMANDS[1].text)}
+          className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-800 text-[11px] font-semibold rounded-lg border border-blue-200 flex items-center gap-1 transition-colors whitespace-nowrap cursor-pointer shadow-2xs disabled:opacity-50"
+          title="Enviar plantilla oficial de Reactivación Meta"
         >
           <Clock className="w-3 h-3 text-blue-600" />
-          <span>Reactivación 24h</span>
+          <span>⚡ Reactivación 24h</span>
         </button>
+
+        {/* Cita Odoo */}
         <button
           type="button"
-          onClick={() => insertCommand(QUICK_COMMANDS[2].text)}
-          className="px-2.5 py-1 bg-purple-50 hover:bg-purple-100 text-purple-800 text-[11px] font-semibold rounded-lg border border-purple-200 flex items-center gap-1 transition-colors whitespace-nowrap cursor-pointer shadow-2xs"
-          title="Cargar recordatorio de Cita Odoo"
+          disabled={sendingTemplate}
+          onClick={() => handleOfficialTemplateClick('confirmacon_cita', QUICK_COMMANDS[2].text)}
+          className="px-2.5 py-1 bg-purple-50 hover:bg-purple-100 text-purple-800 text-[11px] font-semibold rounded-lg border border-purple-200 flex items-center gap-1 transition-colors whitespace-nowrap cursor-pointer shadow-2xs disabled:opacity-50"
+          title="Enviar recordatorio de Cita Odoo"
         >
           <Calendar className="w-3 h-3 text-purple-600" />
-          <span>Recordatorio Odoo</span>
+          <span>Recordatorio Cita</span>
         </button>
       </div>
 
@@ -255,22 +282,42 @@ export default function MessageComposer({
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
             {QUICK_COMMANDS.map((tmpl, i) => (
-              <button
+              <div
                 key={i}
-                type="button"
-                onClick={() => insertCommand(tmpl.text)}
-                className="text-left p-2.5 rounded-lg bg-white hover:bg-blue-50 border border-slate-200 hover:border-blue-300 text-slate-700 hover:text-blue-900 transition-all cursor-pointer text-xs"
+                className="p-2.5 rounded-lg bg-white border border-slate-200 hover:border-blue-300 transition-all flex flex-col justify-between text-xs"
               >
-                <div className="flex items-center justify-between mb-0.5">
-                  <p className="font-bold text-slate-800 text-[11px]">{tmpl.title}</p>
-                  <span className="font-mono text-[9px] text-blue-600 bg-blue-50 px-1 rounded">
-                    {tmpl.cmd}
-                  </span>
+                <div>
+                  <div className="flex items-center justify-between mb-0.5">
+                    <p className="font-bold text-slate-800 text-[11px]">{tmpl.title}</p>
+                    <span className="font-mono text-[9px] text-blue-600 bg-blue-50 px-1 rounded">
+                      {tmpl.cmd}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-slate-500 line-clamp-2 leading-relaxed mb-2">
+                    {prepareText(tmpl.text)}
+                  </p>
                 </div>
-                <p className="text-[10px] text-slate-500 line-clamp-2 leading-relaxed">
-                  {prepareText(tmpl.text)}
-                </p>
-              </button>
+                <div className="flex items-center gap-1.5 pt-1.5 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => insertCommand(tmpl.text)}
+                    className="flex-1 py-1 px-2 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-semibold text-center cursor-pointer transition-colors"
+                  >
+                    Editar en Chat
+                  </button>
+                  {tmpl.templateName && (
+                    <button
+                      type="button"
+                      disabled={sendingTemplate}
+                      onClick={() => handleOfficialTemplateClick(tmpl.templateName!, tmpl.text)}
+                      className="py-1 px-2.5 rounded bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                    >
+                      <SendHorizontal className="w-2.5 h-2.5" />
+                      <span>Enviar Meta</span>
+                    </button>
+                  )}
+                </div>
+              </div>
             ))}
           </div>
         </div>
@@ -357,10 +404,10 @@ export default function MessageComposer({
 
           <button
             type="submit"
-            disabled={!message.trim() || sending || !isHumanMode}
+            disabled={!message.trim() || sending || sendingTemplate || !isHumanMode}
             className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-200 disabled:text-slate-400 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer disabled:cursor-not-allowed"
           >
-            <span>{sending ? 'Enviando...' : 'Enviar'}</span>
+            <span>{sending || sendingTemplate ? 'Enviando...' : 'Enviar'}</span>
             <Send className="w-3.5 h-3.5" />
           </button>
         </div>

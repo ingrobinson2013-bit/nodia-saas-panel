@@ -195,6 +195,35 @@ export default function InboxPage() {
     );
   }
 
+  const handleSendOfficialTemplate = async (templateName: string) => {
+    if (!activeSession || !tenantId) return;
+
+    try {
+      const res = await fetch('/api/send-template', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tenant_id: tenantId,
+          session_id: activeSession.id,
+          wa_to: activeSession.wa_from,
+          template_name: templateName,
+          client_name: getClientName(activeSession) || 'Cliente',
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        alert(`Error de Meta WhatsApp: ${data.error || 'No se pudo enviar la plantilla'}`);
+        return;
+      }
+
+      await fetchSessions(tenantId, true);
+    } catch (err: any) {
+      console.error('Error sending official template:', err);
+      alert(`Error de conexión al enviar plantilla: ${err.message}`);
+    }
+  };
+
   const isHumanMode = !!activeSession && !activeSession.bot_mode;
   const messages = activeSession?.history?.filter((m) => m.role !== 'system') || [];
 
@@ -248,6 +277,7 @@ export default function InboxPage() {
 
             <MessageComposer
               onSendMessage={handleSendMessage}
+              onSendOfficialTemplate={handleSendOfficialTemplate}
               sending={sendingMsg}
               isHumanMode={isHumanMode}
               onActivateHumanMode={() => toggleBotMode(activeSession)}
