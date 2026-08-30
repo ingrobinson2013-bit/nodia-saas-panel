@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { supabase } from '@/lib/supabase';
+import { getChatSessions, setBotMode, sendAgentMessage } from '@/lib/api';
 import { ChatSession, Message } from '@/lib/types';
 import { getTenantId } from '@/lib/tenant';
 import { MessageSquare } from 'lucide-react';
@@ -25,30 +25,25 @@ export default function InboxPage() {
   const [metaErrorMessage, setMetaErrorMessage] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Fetch sessions from Supabase
+  // Fetch sessions from FastAPI & PostgreSQL
   const fetchSessions = useCallback(async (tid?: string, silent = false) => {
     const activeTid = tid || tenantId;
     if (!activeTid) return;
     if (!silent) setLoading(true);
 
     try {
-      const { data, error } = await supabase
-        .from('chat_sessions')
-        .select('*')
-        .eq('tenant_id', activeTid)
-        .not('estado', 'in', '(archivado,cerrado)')
-        .order('updated_at', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching sessions:', error);
-        return;
-      }
-
-      const loaded = (data as ChatSession[]) || [];
+      const loaded = await getChatSessions(activeTid, 100);
       setSessions(loaded);
 
       if (!silent) {
         setActiveSession((prev) => prev || loaded[0] || null);
+      } else {
+        // Actualizar sesión activa con nuevos mensajes en tiempo real
+        setActiveSession((curr) => {
+          if (!curr) return loaded[0] || null;
+          const fresh = loaded.find((s) => s.id === curr.id);
+          return fresh || curr;
+        });
       }
     } finally {
       setLoading(false);
@@ -71,41 +66,14 @@ export default function InboxPage() {
     }
   }, [fetchSessions]);
 
-  // Supabase Realtime WebSocket subscription
+  // Polling en tiempo real cada 3.5s (Reemplazo robusto de WebSockets)
   useEffect(() => {
     if (!tenantId) return;
-
-    const channel = supabase
-      .channel(`chat_sessions_realtime_${tenantId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'chat_sessions',
-          filter: `tenant_id=eq.${tenantId}`,
-        },
-        (payload) => {
-          const updated = payload.new as ChatSession;
-          if (!updated) return;
-          setSessions((prev) => {
-            const idx = prev.findIndex((s) => s.id === updated.id);
-            if (idx >= 0) {
-              const next = [...prev];
-              next[idx] = updated;
-              return next;
-            }
-            return [updated, ...prev];
-          });
-          setActiveSession((curr) => (curr?.id === updated.id ? updated : curr));
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [tenantId]);
+    const interval = setInterval(() => {
+      fetchSessions(tenantId, true);
+    }, 3500);
+    return () => clearInterval(interval);
+  }, [tenantId, fetchSessions]);
 
   // Auto scroll to bottom
   useEffect(() => {
@@ -119,7 +87,7 @@ export default function InboxPage() {
     setMobileView('chat');
   };
 
-  // Toggle Bot Mode
+  // Toggle Bot Mode (Auto / Manual)
   const toggleBotMode = async (session: ChatSession) => {
     const newMode = !session.bot_mode;
     setActiveSession((prev) => (prev ? { ...prev, bot_mode: newMode } : null));
@@ -127,10 +95,7 @@ export default function InboxPage() {
       prev.map((s) => (s.id === session.id ? { ...s, bot_mode: newMode } : s))
     );
 
-    await supabase
-      .from('chat_sessions')
-      .update({ bot_mode: newMode, updated_at: new Date().toISOString() })
-      .eq('id', session.id);
+    await setBotMode(session.id, newMode ? 'auto' : 'manual');
   };
 
   // Send WhatsApp message through Meta API

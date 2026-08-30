@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
+import { getChatSessions } from "@/lib/api";
 import { getTenantId, getTenantNombre } from "@/lib/tenant";
 import { ChatSession } from "@/lib/types";
 import Link from "next/link";
@@ -32,14 +32,8 @@ export default function DashboardPage() {
     if (!activeTid) return;
     setLoading(true);
 
-    // Fetch sessions
-    const { data: sessionData } = await supabase
-      .from("chat_sessions")
-      .select("*")
-      .eq("tenant_id", activeTid)
-      .order("updated_at", { ascending: false });
-
-    const loadedSessions = (sessionData as ChatSession[]) || [];
+    // Fetch sessions desde FastAPI & PostgreSQL nativo
+    const loadedSessions = await getChatSessions(activeTid, 100);
     setSessions(loadedSessions);
 
     // Fetch campaigns history count

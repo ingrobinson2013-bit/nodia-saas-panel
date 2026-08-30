@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
+import { getChatSessions } from "@/lib/api";
 import { getTenantId, getTenantNombre } from "@/lib/tenant";
 import { ChatSession } from "@/lib/types";
 import Link from "next/link";
@@ -23,13 +23,8 @@ export default function ContactosPage() {
     if (!activeTid) return;
     setLoading(true);
 
-    const { data } = await supabase
-      .from("chat_sessions")
-      .select("*")
-      .eq("tenant_id", activeTid)
-      .order("updated_at", { ascending: false });
-
-    setSessions((data as ChatSession[]) || []);
+    const loaded = await getChatSessions(activeTid, 100);
+    setSessions(loaded);
     setLoading(false);
   };
 

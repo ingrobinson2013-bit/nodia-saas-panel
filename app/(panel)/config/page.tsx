@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
+import { getTenantDetail, updateTenantConfig } from "@/lib/api";
 import { Bot, Save, CheckCircle, MessageCircle, Link2, Building2, Eye, EyeOff, FileText, Plus, RefreshCw, Clock, CheckCircle2, XCircle, AlertCircle, Lock, ShieldCheck } from "lucide-react";
 import WhatsAppConnect from "@/components/WhatsAppConnect";
 import { getTenantId } from "@/lib/tenant";
@@ -187,9 +187,10 @@ export default function ConfigPage() {
     const tid = getTenantId();
     setTenantId(tid);
     if (tid) {
-      supabase.from("tenants").select("*")
-        .eq("tenant_id", tid).single()
-        .then(({ data }) => { if (data) setConfig(data); setLoading(false); });
+      getTenantDetail(tid).then(({ tenant }) => {
+        if (tenant) setConfig(tenant as any);
+        setLoading(false);
+      });
     } else {
       setLoading(false);
     }
@@ -247,7 +248,7 @@ export default function ConfigPage() {
 
   const saveSection = async (fields: Partial<TenantConfig>, section: string) => {
     if (!tenantId) return;
-    await supabase.from("tenants").update(fields).eq("tenant_id", tenantId);
+    await updateTenantConfig(tenantId, fields);
     setSaved(section);
     setTimeout(() => setSaved(null), 3000);
   };
@@ -333,11 +334,8 @@ export default function ConfigPage() {
           <WhatsAppConnect
             tenantId={tenantId}
             onConnected={async () => {
-              const { data } = await supabase.from("tenants")
-                .select("*")
-                .eq("tenant_id", tenantId)
-                .single();
-              if (data) setConfig(data);
+              const { tenant } = await getTenantDetail(tenantId);
+              if (tenant) setConfig(tenant as any);
             }}
           />
         </div>
