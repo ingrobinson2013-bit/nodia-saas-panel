@@ -191,3 +191,34 @@ export async function getIntentLogs(tenantId?: string, limit: number = 50): Prom
     return [];
   }
 }
+
+// ── 7. Telemetría y ROI IA Agregado (Admin) ───────────────────────────
+export interface TelemetryData {
+  metrics: {
+    total_interactions: number;
+    fastpath_count: number;
+    llm_count: number;
+    fastpath_ratio: number;
+    avg_fastpath_ms: number;
+    avg_llm_ms: number;
+    cost_saved_usd: number;
+    total_vip_clients: number;
+    breakdown: Record<string, number>;
+  };
+  recent_logs: any[];
+  top_memory: ClientMemoryProfile[];
+}
+
+export async function getTelemetryStats(tenantId?: string): Promise<TelemetryData | null> {
+  try {
+    const url = tenantId
+      ? `${BACKEND_URL}/api/panel/telemetry?tenant_id=${tenantId}`
+      : `${BACKEND_URL}/api/panel/telemetry`;
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (err) {
+    console.error('Error fetching telemetry stats:', err);
+    return null;
+  }
+}
